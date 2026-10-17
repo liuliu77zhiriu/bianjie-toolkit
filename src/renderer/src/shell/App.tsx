@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+﻿import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import type { PluginRuntimeInfo, Settings } from '@shared/types';
 import {
   invoke,
@@ -135,13 +135,16 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    window.tk.panel.ready();
+  }, []);
+
+  useEffect(() => {
     const offOpening = on('panel:opening', (payload) => {
       replayOpening();
       const toolId = (payload as { toolId?: string } | null)?.toolId;
       if (toolId === 'settings') resetTo([{ kind: 'settings' }]);
       else if (toolId) resetTo([{ kind: 'home' }, { kind: 'tool', pluginId: toolId }]);
       else resetTo([{ kind: 'home' }]);
-      window.tk.panel.ready();
     });
     const offShown = on('panel:open', () => {
       notifyPanelVisibility(true);
@@ -360,4 +363,5 @@ export default function App() {
     </div>
   );
 }
+
 

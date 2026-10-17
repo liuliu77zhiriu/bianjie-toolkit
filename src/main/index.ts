@@ -197,7 +197,7 @@ async function bootstrap() {
   shortcuts.apply(settings.get());
   applyAutostart(settings.get().general.launchAtLogin);
 
-  windows.createPanel();
+  // 主面板按需创建，降低常驻内存与启动开销
   windows.createBall();
   if (settings.get().general.showBall) windows.showBall();
 
@@ -320,6 +320,7 @@ process.on('exit', () => {
     /* ignore */
   }
 });
+
 
 
 

@@ -106,9 +106,9 @@ export async function runSmoke(env: SmokeEnv): Promise<void> {
   };
 
   await run('面板 + 悬浮球 + 桌面外观截图', async () => {
-    if (!env.windows.panel) throw new Error('panel not created');
     env.windows.openPanel();
-    await wait(1600);
+    await wait(1800);
+    if (!env.windows.panel) throw new Error('panel not created');
     const size = await capturePanel('01-panel-home.png');
     if (env.windows.ball) {
       const ballShot = await env.windows.ball.webContents.capturePage();

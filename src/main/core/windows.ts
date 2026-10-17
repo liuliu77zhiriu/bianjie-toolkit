@@ -37,6 +37,9 @@ export class WindowManager {
   private ballDragOffset: { x: number; y: number; originX: number; originY: number } | null = null;
   private panelCloseTimer: NodeJS.Timeout | null = null;
   private panelClosing = false;
+  private panelReady = false;
+  private pendingOpen: { toolId?: string } | null = null;
+  private pendingPresent = false;
   private suppressBlur = 0;
 
   constructor(private deps: WindowDeps) {
@@ -304,9 +307,13 @@ export class WindowManager {
     });
     win.on('closed', () => {
       this.panel = null;
+      this.panelReady = false;
+      this.pendingOpen = null;
+      this.pendingPresent = false;
     });
     win.webContents.on('render-process-gone', (_e, details) => {
       this.deps.logger.error('[panel] renderer gone', details.reason);
+      this.panelReady = false;
       if (!win.isDestroyed()) win.reload();
     });
 
@@ -331,6 +338,11 @@ export class WindowManager {
     ipc.handle('core', 'panel.state', () => ({ open: this.isPanelOpen }));
     ipc.handle('core', 'panel.ready', () => {
       this.deps.logger.info('[panel] renderer ready');
+      this.panelReady = true;
+      if (this.pendingPresent && this.panel) {
+        this.pendingPresent = false;
+        this.presentPanel(this.panel);
+      }
       return true;
     });
     return win;
@@ -373,16 +385,27 @@ export class WindowManager {
       this.panelCloseTimer = null;
     }
     this.panelClosing = false;
+    this.pendingOpen = { toolId };
+    if (this.panelReady) {
+      this.presentPanel(win);
+    } else {
+      // 首次创建：等渲染层完成挂载（panel.ready）后再显示，避免透明空窗闪烁
+      this.pendingPresent = true;
+    }
+  }
+
+  private presentPanel(win: BrowserWindow) {
+    if (win.isDestroyed()) return;
     if (!win.isVisible()) {
       const pos = this.resolvePanelPosition();
       win.setPosition(pos.x, pos.y);
+      try {
+        win.setOpacity(0);
+      } catch {
+        /* ignore */
+      }
+      win.show();
     }
-    try {
-      win.setOpacity(0);
-    } catch {
-      /* ignore */
-    }
-    if (!win.isVisible()) win.show();
     win.focus();
     if (win.isMinimized()) win.restore();
     let step = 0;
@@ -397,10 +420,12 @@ export class WindowManager {
       }
       if (step >= steps) clearInterval(timer);
     }, 14);
-    win.webContents.send(IPC.event, { topic: 'panel:opening', payload: { toolId: toolId ?? null } });
+    const toolId = this.pendingOpen?.toolId ?? null;
+    this.pendingOpen = null;
+    win.webContents.send(IPC.event, { topic: 'panel:opening', payload: { toolId } });
     setTimeout(() => {
       if (win.isDestroyed()) return;
-      win.webContents.send(IPC.event, { topic: 'panel:open', payload: { toolId: toolId ?? null } });
+      win.webContents.send(IPC.event, { topic: 'panel:open', payload: { toolId } });
     }, 30);
   }
 
@@ -465,6 +490,9 @@ export class WindowManager {
 }
 
 export { PANEL_WIDTH, PANEL_HEIGHT };
+
+
+
 
 
 
