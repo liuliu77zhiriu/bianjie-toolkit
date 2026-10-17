@@ -1,4 +1,4 @@
-import type { Settings } from './types';
+﻿import type { Settings } from './types';
 
 export const APP_NAME = '便捷工具';
 export const APP_ID = 'com.bianjie.toolkit';
@@ -14,7 +14,7 @@ export const DEFAULT_SETTINGS: Settings = {
   },
   appearance: {
     accent: '#4C8DFF',
-    panelOpacity: 0.86,
+    panelOpacity: 0.84,
     blur: true,
     animation: 'full',
     ballSize: 56,
@@ -102,3 +102,4 @@ export const IPC = {
   recorderState: 'tk:recorder:state',
   recorderError: 'tk:recorder:error',
 } as const;
+

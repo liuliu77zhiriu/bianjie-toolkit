@@ -37,12 +37,13 @@ src/
       shell/             外壳：路由、页面动效、弹层、Toast、悬浮球 UI（Lead）
       ui/                设计系统基础组件（Lead）
       pages/settings/    ★ 设置 / 插件管理 / 代码编辑器（settings-dev 负责）
-      theme/             设计令牌 + 全局样式（Lead）
+      theme/             设计令牌 + 全局样式 + glass-borders 黑玻璃边框（Lead）
       lib/               bridge（window.tk 封装）、spring、smooth scroll（Lead）
       recorder/          ★ 录制页逻辑（capture-dev）
 resources/
   plugin-sdk/sdk.js      插件 UI 通信 SDK（tk://plugin-sdk/sdk.js）
   plugin-sdk/theme.css   插件 UI 主题样式（tk://plugin-sdk/theme.css）
+  plugin-sdk/glass-borders.css  插件黑玻璃边框层（由 theme.css @import）
   plugins/               内置插件（每个插件一个目录，独立归属）
     screenshot/          ★ capture-dev
     recorder/            ★ capture-dev
@@ -50,7 +51,7 @@ resources/
     timer/               ★ productivity-dev
   icons/                 应用图标 / 托盘图标
 tests/                   自动化测试（Lead 装配，插件作者补充各自用例）
-docs/                    文档
+docs/                    文档（架构 / 插件 SDK / 用户手册 / UI 设计说明）
 ```
 
 ★ = 由对应 teammate 独占写入；其余由 Lead 维护。禁止跨区修改，需要契约变更时先联系 Lead。
@@ -125,4 +126,5 @@ npm run package    # 打包绿色版（复制本地 Electron 运行时 + resedit
 
 - Lead 提供 `npm run smoke`：启动真实应用，跑截图/窗口枚举/录屏/计时器/设置/插件热重载，产出 `artifacts/` 截图与 `report.json`。
 - teammate 只写自己模块的单元/集成用例到 `tests/<module>.test.mjs`（Node 原生 test runner，`node --test`），并保证 `npm run smoke` 相关断言通过。
+
 

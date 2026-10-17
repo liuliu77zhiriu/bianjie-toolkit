@@ -1,0 +1,185 @@
+﻿/* ============================================================
+   插件 UI · 黑玻璃边框强化
+   与外壳 glass-borders.css 同一套语言：
+   - 半透明炭黑底，蓝色仅用于强调和细边冷光
+   - 伪元素遮罩渐变边框（glass-dark-ui skill pattern）
+   ============================================================ */
+
+:root {
+  --tk-bg: #05060a;
+  --tk-surface: rgba(12, 13, 18, 0.66);
+  --tk-surface-2: rgba(18, 20, 26, 0.58);
+  --tk-surface-3: rgba(26, 29, 36, 0.52);
+  --tk-border: rgba(255, 255, 255, 0.1);
+  --tk-border-strong: rgba(255, 255, 255, 0.22);
+  --tk-text: #f1f3f8;
+  --tk-text-2: #b6bcc9;
+  --tk-text-3: #767e8d;
+  --tk-glass: linear-gradient(160deg, rgba(24, 26, 33, 0.5), rgba(5, 6, 10, 0.74));
+  --tk-shadow: 0 18px 48px rgba(0, 0, 0, 0.5);
+}
+
+/* 卡片：细渐变边 + 内高光 */
+.tk-card {
+  border: 1px solid transparent;
+  background-image:
+    linear-gradient(160deg, rgba(22, 24, 31, 0.54), rgba(4, 5, 9, 0.72)),
+    linear-gradient(
+      150deg,
+      rgba(255, 255, 255, 0.21) 0%,
+      rgba(255, 255, 255, 0.05) 42%,
+      rgba(255, 255, 255, 0.02) 66%,
+      rgba(var(--tk-accent-rgb), 0.15) 100%
+    );
+  background-origin: border-box;
+  background-clip: padding-box, border-box;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 10px 26px rgba(0, 0, 0, 0.26);
+}
+
+.tk-card.interactive:hover {
+  border-color: transparent;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.07),
+    0 14px 32px rgba(0, 0, 0, 0.34),
+    0 0 24px rgba(var(--tk-accent-rgb), 0.08);
+}
+
+.tk-card.accent {
+  border-color: transparent;
+  background-image:
+    linear-gradient(150deg, rgba(var(--tk-accent-rgb), 0.16), rgba(5, 6, 10, 0.74)),
+    linear-gradient(150deg, rgba(var(--tk-accent-rgb), 0.5), rgba(255, 255, 255, 0.12) 42%, rgba(var(--tk-accent-rgb), 0.16));
+  background-origin: border-box;
+  background-clip: padding-box, border-box;
+}
+
+/* 列表项 */
+.tk-item {
+  border: 1px solid transparent;
+  background-image:
+    linear-gradient(160deg, rgba(20, 22, 29, 0.5), rgba(4, 5, 8, 0.6)),
+    linear-gradient(150deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.012) 60%, rgba(var(--tk-accent-rgb), 0.05));
+  background-origin: border-box;
+  background-clip: padding-box, border-box;
+}
+.tk-item:hover {
+  border-color: transparent;
+  background-image:
+    linear-gradient(160deg, rgba(27, 30, 38, 0.62), rgba(6, 7, 11, 0.7)),
+    linear-gradient(150deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.02) 60%, rgba(var(--tk-accent-rgb), 0.1));
+}
+.tk-item.active {
+  border-color: transparent;
+  background-image:
+    linear-gradient(160deg, rgba(var(--tk-accent-rgb), 0.14), rgba(5, 6, 10, 0.7)),
+    linear-gradient(150deg, rgba(var(--tk-accent-rgb), 0.55), rgba(255, 255, 255, 0.1) 50%, rgba(var(--tk-accent-rgb), 0.2));
+  background-origin: border-box;
+  background-clip: padding-box, border-box;
+}
+
+/* 按钮 */
+.tk-btn {
+  border-color: rgba(255, 255, 255, 0.1);
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.022));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.055),
+    0 2px 8px rgba(0, 0, 0, 0.18);
+}
+.tk-btn:hover {
+  border-color: rgba(255, 255, 255, 0.2);
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.09), rgba(255, 255, 255, 0.035));
+}
+.tk-btn.primary {
+  border-color: rgba(var(--tk-accent-rgb), 0.5);
+  background: linear-gradient(150deg, rgba(var(--tk-accent-rgb), 0.92), rgba(var(--tk-accent-rgb), 0.62));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.26),
+    0 6px 18px rgba(var(--tk-accent-rgb), 0.24);
+}
+.tk-btn.ghost {
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+}
+
+.tk-icon-btn {
+  border-color: rgba(255, 255, 255, 0.07);
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.02));
+}
+.tk-icon-btn:hover {
+  border-color: rgba(255, 255, 255, 0.16);
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.09), rgba(255, 255, 255, 0.035));
+}
+
+/* 表单 */
+.tk-input {
+  border-color: rgba(255, 255, 255, 0.09);
+  background: rgba(2, 3, 6, 0.44);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.35);
+}
+.tk-input:focus {
+  border-color: rgba(var(--tk-accent-rgb), 0.55);
+  box-shadow:
+    0 0 0 3px rgba(var(--tk-accent-rgb), 0.11),
+    inset 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.tk-switch {
+  border-color: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.07);
+}
+.tk-switch[aria-checked="true"] {
+  border-color: rgba(var(--tk-accent-rgb), 0.5);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 0 14px rgba(var(--tk-accent-rgb), 0.16);
+}
+
+/* 分段控件 / chips / 徽标 */
+.tk-seg {
+  border-color: rgba(255, 255, 255, 0.09);
+  background: rgba(2, 3, 6, 0.46);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+.tk-seg button.active {
+  background: linear-gradient(160deg, rgba(var(--tk-accent-rgb), 0.24), rgba(var(--tk-accent-rgb), 0.1));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+.tk-chip {
+  border-color: rgba(255, 255, 255, 0.1);
+  background: rgba(8, 9, 13, 0.5);
+}
+.tk-chip.active {
+  border-color: rgba(var(--tk-accent-rgb), 0.42);
+  background: rgba(var(--tk-accent-rgb), 0.14);
+}
+.tk-badge {
+  border-color: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.045);
+}
+
+.tk-divider {
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.08), transparent);
+}
+
+.tk-kbd {
+  border-color: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.045);
+}
+
+.tk-thumb {
+  border-color: rgba(255, 255, 255, 0.1);
+  background: rgba(2, 3, 6, 0.6);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.25);
+}
+
+.tk-progress {
+  background: rgba(255, 255, 255, 0.07);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.35);
+}
+
+::selection {
+  background: rgba(var(--tk-accent-rgb), 0.35);
+  color: #fff;
+}
+

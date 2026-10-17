@@ -1,3 +1,4 @@
+﻿@import url("tk://plugin-sdk/glass-borders.css");
 /* ============================================================   便捷工具 · 插件 UI 主题   通过 <link rel="stylesheet" href="tk://plugin-sdk/theme.css">   所有颜色使用 CSS 变量，随用户强调色 / 玻璃强度实时变化。   ============================================================ */:root  {
   color-scheme: dark;
   --tk-accent: #4c8dff;
@@ -619,3 +620,4 @@ select.tk-input  {
 }
 
 }
+
