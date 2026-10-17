@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self' tk:; img-src 'self' tk: data:; style-src 'self' 'unsafe-inline' tk:; script-src 'self' tk:;"
+    />
+    <link rel="stylesheet" href="tk://plugin-sdk/theme.css" />
+    <link rel="stylesheet" href="indicator.css" />
+  </head>
+  <body>
+    <div class="ind" id="ind" title="拖动可移动 · 点击停止按钮结束录制">
+      <span class="ind-dot" id="dot"></span>
+      <div class="ind-info">
+        <span class="ind-time tk-mono" id="time">00:00</span>
+        <span class="ind-phase" id="phase">录制中</span>
+      </div>
+      <button class="ind-stop" id="stop" type="button" title="停止录制" aria-label="停止录制">
+        <svg viewBox="0 0 16 16" width="12" height="12" aria-hidden="true">
+          <rect x="3.5" y="3.5" width="9" height="9" rx="1.6" fill="currentColor" />
+        </svg>
+      </button>
+      <button class="ind-close" id="close" type="button" title="取消录制" aria-label="取消录制">✕</button>
+    </div>
+    <script src="tk://plugin-sdk/sdk.js"></script>
+    <script src="indicator.js" type="module"></script>
+  </body>
+</html>

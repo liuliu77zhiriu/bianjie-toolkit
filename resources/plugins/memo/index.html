@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self' tk:; img-src 'self' tk: data: blob:; style-src 'self' 'unsafe-inline' tk:; script-src 'self' tk:;" />
+  <link rel="stylesheet" href="tk://plugin-sdk/theme.css" />
+  <link rel="stylesheet" href="style.css" />
+  <title>备忘录</title>
+</head>
+<body>
+  <div class="memo-app">
+    <!-- ==================== 列表视图 ==================== -->
+    <section class="view" id="viewList" data-state="active" aria-label="备忘录列表">
+      <div class="tk-page list-page">
+        <div class="tk-header">
+          <div>
+            <h2 class="tk-title">备忘录</h2>
+            <p class="tk-sub" id="listSub">正在加载…</p>
+          </div>
+          <button class="tk-btn primary sm" id="btnNew" type="button">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true">
+              <path d="M12 5v14M5 12h14" />
+            </svg>
+            新建
+          </button>
+        </div>
+
+        <div class="search-box">
+          <svg class="search-icon" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+            <circle cx="11" cy="11" r="6.5" />
+            <path d="M16 16l4 4" />
+          </svg>
+          <input class="tk-input search-input" id="searchInput" type="search" placeholder="搜索标题或内容…"
+                 autocomplete="off" spellcheck="false" aria-label="搜索备忘录" />
+        </div>
+
+        <div class="note-scroll tk-scroll" id="noteScroll">
+          <div class="tk-list" id="noteList"></div>
+          <div class="tk-empty" id="emptyState">
+            <svg viewBox="0 0 48 48" width="42" height="42" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="10" y="8" width="28" height="32" rx="6" />
+              <path d="M16 17h16M16 24h16M16 31h9" />
+            </svg>
+            <div id="emptyTitle">还没有备忘录</div>
+            <div class="tk-hint" id="emptyHint">点击右上角「新建」，随手记下想法</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== 编辑器视图 ==================== -->
+    <section class="view" id="viewEditor" data-state="hidden-right" aria-label="备忘录编辑器">
+      <div class="tk-page editor-page">
+        <div class="tk-header editor-header">
+          <button class="tk-icon-btn" id="btnBack" type="button" title="返回列表（Esc）" aria-label="返回列表">
+            <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M15 18l-6-6 6-6" />
+            </svg>
+          </button>
+          <div class="tk-grow editor-heading-wrap">
+            <div class="editor-heading-row">
+              <span class="editor-heading" id="editorHeading">新建备忘录</span>
+              <span class="save-badge" id="saveState" data-state="saved">已保存</span>
+            </div>
+            <p class="tk-sub" id="editorMeta">自动保存 · 400ms</p>
+          </div>
+          <button class="tk-icon-btn" id="btnPin" type="button" title="置顶" aria-label="置顶" aria-pressed="false">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M9 4h6l-1 5.5 3 3.5H7l3-3.5L9 4z" />
+              <path d="M12 13v7" />
+            </svg>
+          </button>
+          <button class="tk-icon-btn danger-hover" id="btnDelete" type="button" title="删除" aria-label="删除">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M4 7h16M9 7V5h6v2M7 7l1 13h8l1-13" />
+            </svg>
+          </button>
+        </div>
+
+        <input class="tk-input title-input" id="noteTitle" type="text" placeholder="标题" maxlength="200"
+               autocomplete="off" spellcheck="false" aria-label="备忘录标题" />
+        <textarea class="tk-input content-input" id="noteContent" placeholder="写点什么…"
+                  spellcheck="false" aria-label="备忘录正文"></textarea>
+
+        <div class="editor-foot">
+          <span class="tk-hint" id="wordCount">0 字</span>
+          <span class="tk-hint kbd-hint">
+            <span class="tk-kbd">Ctrl</span><span class="kbd-plus">+</span><span class="tk-kbd">S</span>
+            <span class="kbd-label">手动保存</span>
+          </span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== 删除二次确认 ==================== -->
+    <div class="confirm-mask tk-hidden" id="confirmMask" aria-hidden="true">
+      <div class="tk-card confirm-card" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
+        <div class="confirm-glyph" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 8v5" />
+            <circle cx="12" cy="16.6" r=".6" fill="currentColor" />
+            <path d="M10.3 4.2L3.6 16a2 2 0 0 0 1.7 3h13.4a2 2 0 0 0 1.7-3L13.7 4.2a2 2 0 0 0-3.4 0z" />
+          </svg>
+        </div>
+        <h3 class="confirm-title" id="confirmTitle">删除这条备忘录？</h3>
+        <p class="confirm-text" id="confirmText">删除后不可恢复。</p>
+        <div class="confirm-actions">
+          <button class="tk-btn ghost" id="btnCancelDelete" type="button">取消</button>
+          <button class="tk-btn danger" id="btnConfirmDelete" type="button">删除</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="tk://plugin-sdk/sdk.js"></script>
+  <script src="app.js" type="module"></script>
+</body>
+</html>

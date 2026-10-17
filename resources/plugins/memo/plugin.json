@@ -1,0 +1,12 @@
+{
+  "id": "memo",
+  "name": "备忘录",
+  "description": "快速记录、搜索与置顶，400ms 自动保存",
+  "version": "1.0.0",
+  "icon": "note",
+  "accent": "#4C8DFF",
+  "order": 20,
+  "entry": "main.js",
+  "ui": "index.html",
+  "builtin": true
+}

@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self' tk:; img-src 'self' tk: data: blob:; style-src 'self' 'unsafe-inline' tk:; script-src 'self' tk:;" />
+  <link rel="stylesheet" href="tk://plugin-sdk/theme.css" />
+  <link rel="stylesheet" href="style.css" />
+  <title>计时器</title>
+</head>
+<body data-mode="stopwatch" data-phase="idle">
+  <div class="tk-page tk-scroll timer-page">
+    <div class="tk-header">
+      <div>
+        <h2 class="tk-title">计时器</h2>
+        <p class="tk-sub" id="statusSub">后端计时 · 关闭面板后继续</p>
+      </div>
+      <div class="tk-seg" id="modeSeg" role="tablist" aria-label="计时模式">
+        <button type="button" data-mode="stopwatch" class="active" role="tab" aria-selected="true">秒表</button>
+        <button type="button" data-mode="countdown" role="tab" aria-selected="false">倒计时</button>
+      </div>
+    </div>
+
+    <div class="clock-wrap" id="clockWrap">
+      <svg class="ring" viewBox="0 0 200 200" aria-hidden="true">
+        <circle class="ring-track" cx="100" cy="100" r="86" />
+        <circle class="ring-value" id="ringValue" cx="100" cy="100" r="86" />
+      </svg>
+      <div class="clock-center">
+        <div class="clock-time tk-mono" id="clockTime">00:00</div>
+        <div class="clock-state" id="clockState">准备就绪</div>
+      </div>
+    </div>
+
+    <div class="controls">
+      <button class="tk-btn primary main-btn" id="btnMain" type="button">开始</button>
+      <button class="tk-btn" id="btnLap" type="button">计次</button>
+      <button class="tk-btn ghost" id="btnReset" type="button">重置</button>
+    </div>
+
+    <div class="tk-card preset-card" id="presetCard">
+      <div class="tk-row between">
+        <span class="tk-label">倒计时预设</span>
+        <span class="tk-hint" id="durationHint">25:00</span>
+      </div>
+      <div class="chips" id="presetChips">
+        <button class="tk-chip" type="button" data-minutes="1">1 分钟</button>
+        <button class="tk-chip" type="button" data-minutes="3">3 分钟</button>
+        <button class="tk-chip" type="button" data-minutes="5">5 分钟</button>
+        <button class="tk-chip" type="button" data-minutes="10">10 分钟</button>
+        <button class="tk-chip active" type="button" data-minutes="25">25 分钟</button>
+        <button class="tk-chip" type="button" data-minutes="45">45 分钟</button>
+      </div>
+      <div class="custom-row">
+        <label class="custom-field">
+          <input class="tk-input" id="customMin" type="number" min="0" max="599" inputmode="numeric" placeholder="25" aria-label="自定义分钟" />
+          <span>分</span>
+        </label>
+        <label class="custom-field">
+          <input class="tk-input" id="customSec" type="number" min="0" max="59" inputmode="numeric" placeholder="0" aria-label="自定义秒" />
+          <span>秒</span>
+        </label>
+        <button class="tk-btn sm" id="btnCustom" type="button">应用</button>
+      </div>
+    </div>
+
+    <div class="laps-wrap" id="lapsCard">
+      <div class="tk-row between">
+        <span class="tk-label">计次记录</span>
+        <span class="tk-hint" id="lapCount">0 次</span>
+      </div>
+      <div class="tk-list" id="lapList"></div>
+      <div class="tk-empty lap-empty" id="lapEmpty">
+        <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="13" r="8" />
+          <path d="M12 9v4.4l3 1.8M9 2.5h6" />
+        </svg>
+        <span>开始秒表并点击「计次」记录分段</span>
+      </div>
+    </div>
+
+    <div class="timer-foot">
+      <span class="tk-hint">关闭面板计时继续 · 迷你窗常驻桌面</span>
+      <button class="tk-btn ghost sm" id="btnMini" type="button">桌面迷你窗</button>
+    </div>
+  </div>
+
+  <script src="tk://plugin-sdk/sdk.js"></script>
+  <script src="app.js" type="module"></script>
+</body>
+</html>

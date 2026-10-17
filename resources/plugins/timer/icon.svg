@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none">
+  <defs>
+    <linearGradient id="timer-g" x1="12" y1="14" x2="36" y2="42" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#4C8DFF" stop-opacity=".9" />
+      <stop offset="1" stop-color="#7CB0FF" stop-opacity=".55" />
+    </linearGradient>
+  </defs>
+  <circle cx="24" cy="27" r="14.5" fill="url(#timer-g)" opacity=".16" />
+  <circle cx="24" cy="27" r="14.5" stroke="#9CC0FF" stroke-width="2" />
+  <path d="M24 19v8.4l5.4 3.2" stroke="#DCECFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" />
+  <path d="M18 6.5h12" stroke="#9CC0FF" stroke-width="2.4" stroke-linecap="round" />
+  <path d="M24 6.5v5.6" stroke="#9CC0FF" stroke-width="2.4" stroke-linecap="round" />
+  <path d="M36.5 13.5l2.6 2.6" stroke="#4C8DFF" stroke-width="2.6" stroke-linecap="round" />
+</svg>

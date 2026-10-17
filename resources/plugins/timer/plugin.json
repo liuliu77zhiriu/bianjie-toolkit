@@ -1,0 +1,12 @@
+{
+  "id": "timer",
+  "name": "计时器",
+  "description": "秒表 / 倒计时，后端权威计时与桌面迷你窗",
+  "version": "1.0.0",
+  "icon": "timer",
+  "accent": "#4C8DFF",
+  "order": 30,
+  "entry": "main.js",
+  "ui": "index.html",
+  "builtin": true
+}

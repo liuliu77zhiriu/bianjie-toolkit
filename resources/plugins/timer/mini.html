@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self' tk:; img-src 'self' tk: data: blob:; style-src 'self' 'unsafe-inline' tk:; script-src 'self' tk:;" />
+  <link rel="stylesheet" href="tk://plugin-sdk/theme.css" />
+  <link rel="stylesheet" href="mini.css" />
+  <title>计时器迷你窗</title>
+</head>
+<body data-mode="stopwatch" data-phase="idle">
+  <div class="mini" id="mini">
+    <div class="mini-clock">
+      <div class="mini-time tk-mono" id="miniTime">00:00</div>
+      <div class="mini-label">
+        <span class="mini-dot" id="miniDot"></span>
+        <span id="miniLabel">待开始</span>
+      </div>
+    </div>
+
+    <div class="mini-actions">
+      <button class="mini-btn" id="btnToggle" type="button" title="开始 / 暂停" aria-label="开始或暂停">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor" aria-hidden="true">
+          <path id="toggleIconPath" d="M8 5.5v13l11-6.5-11-6.5z" />
+        </svg>
+      </button>
+      <button class="mini-btn" id="btnReset" type="button" title="重置" aria-label="重置">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M4 12a8 8 0 1 0 2.4-5.7" />
+          <path d="M4 4v5h5" />
+        </svg>
+      </button>
+      <button class="mini-btn" id="btnClose" type="button" title="隐藏迷你窗（计时继续）" aria-label="隐藏迷你窗">
+        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true">
+          <path d="M6 6l12 12M18 6L6 18" />
+        </svg>
+      </button>
+    </div>
+
+    <div class="mini-bar" id="miniBar"><i id="miniBarFill"></i></div>
+  </div>
+
+  <script src="tk://plugin-sdk/sdk.js"></script>
+  <script src="mini.js" type="module"></script>
+</body>
+</html>

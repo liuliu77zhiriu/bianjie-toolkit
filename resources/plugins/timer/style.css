@@ -1,0 +1,307 @@
+/* ============================================================
+ * 计时器 · 面板样式
+ * ============================================================ */
+
+.timer-page {
+  gap: 12px;
+  padding-bottom: 20px;
+}
+
+.tk-seg button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* ------------------------------------------------ 时钟 */
+
+.clock-wrap {
+  position: relative;
+  width: 208px;
+  height: 208px;
+  margin: 2px auto 0;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ring {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+  transition: opacity 0.3s var(--tk-ease-soft);
+}
+
+.ring-track {
+  fill: none;
+  stroke: rgba(140, 180, 255, 0.13);
+  stroke-width: 7;
+}
+
+.ring-value {
+  fill: none;
+  stroke: var(--tk-accent);
+  stroke-width: 7;
+  stroke-linecap: round;
+  filter: drop-shadow(0 0 6px rgba(var(--tk-accent-rgb), 0.55));
+  transition: stroke-dashoffset 0.2s linear;
+}
+
+body[data-mode="stopwatch"] .ring {
+  opacity: 0;
+}
+
+.clock-center {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.clock-time {
+  font-family: var(--tk-mono);
+  font-size: 40px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  line-height: 1.12;
+  font-variant-numeric: tabular-nums;
+  color: var(--tk-text);
+  text-shadow: 0 2px 24px rgba(var(--tk-accent-rgb), 0.35);
+  transition: transform 0.24s var(--tk-ease), color 0.24s;
+}
+
+body[data-phase="running"] .clock-time {
+  color: #f2f7ff;
+}
+
+body[data-phase="paused"] .clock-time {
+  color: var(--tk-text-2);
+  transform: scale(0.97);
+}
+
+body[data-phase="finished"] .clock-time {
+  color: var(--tk-success);
+}
+
+.clock-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--tk-text-3);
+  font-size: 11.5px;
+  letter-spacing: 0.6px;
+}
+
+.clock-state::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--tk-text-3);
+  transition: background 0.2s, box-shadow 0.2s;
+}
+
+body[data-phase="running"] .clock-state::before {
+  background: var(--tk-success);
+  box-shadow: 0 0 0 3px rgba(63, 216, 164, 0.16);
+  animation: tk-pulse 1.6s infinite;
+}
+
+body[data-phase="paused"] .clock-state::before {
+  background: var(--tk-warn);
+  box-shadow: 0 0 0 3px rgba(255, 198, 97, 0.14);
+}
+
+body[data-phase="finished"] .clock-state::before {
+  background: var(--tk-success);
+  box-shadow: 0 0 0 3px rgba(63, 216, 164, 0.2);
+}
+
+/* 倒计时结束的面板提示 */
+body.finished .clock-wrap {
+  animation: timer-finish-flash 1.3s var(--tk-ease-soft) 2;
+}
+
+@keyframes timer-finish-flash {
+  0%,
+  100% {
+    filter: none;
+  }
+  40% {
+    filter: drop-shadow(0 0 16px rgba(var(--tk-accent-rgb), 0.55));
+  }
+}
+
+/* ------------------------------------------------ 控制按钮 */
+
+.controls {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex: none;
+}
+
+.controls .main-btn {
+  flex: 1.4;
+  height: 38px;
+  font-size: 13.5px;
+}
+
+.controls .tk-btn:not(.main-btn) {
+  flex: 1;
+  height: 38px;
+}
+
+/* ------------------------------------------------ 倒计时预设 */
+
+.preset-card {
+  padding: 12px 13px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: none;
+}
+
+body[data-mode="stopwatch"] .preset-card {
+  display: none;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.chips .tk-chip {
+  height: 26px;
+  padding: 0 11px;
+}
+
+.chips .tk-chip:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.custom-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.custom-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex: 1;
+  min-width: 0;
+  color: var(--tk-text-3);
+  font-size: 11.5px;
+}
+
+.custom-field .tk-input {
+  width: 100%;
+  height: 30px;
+  text-align: center;
+  font-family: var(--tk-mono);
+  padding: 0 4px;
+}
+
+/* ------------------------------------------------ 计次 */
+
+.laps-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+  min-height: 0;
+}
+
+body[data-mode="countdown"] .laps-wrap {
+  display: none;
+}
+
+.lap-item {
+  padding: 8px 11px;
+  gap: 8px;
+  animation: lap-in 0.28s var(--tk-ease-soft) both;
+}
+
+@keyframes lap-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.lap-index {
+  flex: none;
+  color: var(--tk-text-3);
+  font-size: 11px;
+  min-width: 44px;
+}
+
+.lap-time {
+  flex: 1;
+  color: var(--tk-text);
+  font-size: 13px;
+  letter-spacing: 0.4px;
+}
+
+.lap-total {
+  flex: none;
+  color: var(--tk-text-3);
+  font-size: 10.5px;
+}
+
+.lap-empty {
+  padding: 18px 12px;
+  gap: 6px;
+}
+
+.lap-empty svg {
+  color: var(--tk-accent-2);
+}
+
+/* ------------------------------------------------ 底部 */
+
+.timer-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-top: 2px;
+  flex: none;
+}
+
+/* 窄一点的面板下压缩时钟 */
+@media (max-height: 560px) {
+  .clock-wrap {
+    width: 184px;
+    height: 184px;
+  }
+  .clock-time {
+    font-size: 35px;
+  }
+}
+
+/* 完成态闪一下强调 */
+@keyframes timer-finish-glow {
+  0% {
+    box-shadow: inset 0 0 0 1px rgba(var(--tk-accent-rgb), 0.1);
+  }
+  50% {
+    box-shadow: inset 0 0 26px rgba(var(--tk-accent-rgb), 0.25);
+  }
+  100% {
+    box-shadow: inset 0 0 0 1px rgba(var(--tk-accent-rgb), 0.1);
+  }
+}

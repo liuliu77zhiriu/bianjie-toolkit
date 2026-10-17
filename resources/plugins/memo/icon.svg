@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none">
+  <defs>
+    <linearGradient id="memo-g" x1="10" y1="6" x2="38" y2="42" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#4C8DFF" stop-opacity=".9" />
+      <stop offset="1" stop-color="#7CB0FF" stop-opacity=".55" />
+    </linearGradient>
+  </defs>
+  <rect x="8" y="6" width="32" height="36" rx="9" fill="url(#memo-g)" opacity=".16" />
+  <rect x="9" y="7" width="30" height="34" rx="8" stroke="#9CC0FF" stroke-width="2" />
+  <path d="M15.5 16.5h17M15.5 23h17M15.5 29.5h10" stroke="#DCECFF" stroke-width="2.4" stroke-linecap="round" />
+  <path d="M30.5 33.5l5.5-5.5 2.6 2.6-5.5 5.5-3.3.7.7-3.3z" fill="#4C8DFF" />
+</svg>

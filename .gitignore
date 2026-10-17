@@ -1,0 +1,9 @@
+node_modules/
+dist/
+build/
+release/
+artifacts/
+.tmp-smoke/
+*.log
+.DS_Store
+Thumbs.db

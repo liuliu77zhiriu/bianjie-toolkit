@@ -1,0 +1,124 @@
+:root  {
+  color-scheme: dark;
+  --tk-accent: #4c8dff;
+  --tk-accent-rgb: 76, 141, 255;
+  --tk-accent-2: #7cb0ff;
+  --tk-bg: #070b16;
+  --tk-surface: rgba(16, 25, 45, 0.62);
+  --tk-surface-2: rgba(22, 34, 60, 0.5);
+  --tk-surface-3: rgba(32, 48, 82, 0.44);
+  --tk-border: rgba(140, 180, 255, 0.14);
+  --tk-border-strong: rgba(140, 180, 255, 0.3);
+  --tk-text: #e9f1ff;
+  --tk-text-2: #a9bedf;
+  --tk-text-3: #6d82a6;
+  --tk-danger: #ff6b81;
+  --tk-success: #3fd8a4;
+  --tk-warn: #ffc661;
+  --tk-radius-lg: 20px;
+  --tk-radius-md: 14px;
+  --tk-radius-sm: 10px;
+  --tk-font: "Microsoft YaHei UI", "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --tk-mono: "Cascadia Code", "JetBrains Mono", "Consolas", monospace;
+  --tk-ease: cubic-bezier(0.34, 1.4, 0.5, 1);
+  --tk-ease-soft: cubic-bezier(0.22, 0.9, 0.24, 1);
+  --tk-ease-spring: cubic-bezier(0.2, 1.35, 0.32, 1);
+  --tk-shadow: 0 18px 50px rgba(0, 0, 0, 0.45);
+  --panel-opacity: 0.86;
+  --tk-glass: linear-gradient(160deg, rgba(46, 68, 112, 0.4), rgba(9, 16, 32, 0.62));
+  --tk-glass-strong: linear-gradient(155deg, rgba(52, 78, 130, 0.52), rgba(10, 18, 36, 0.74));
+
+}
+[hidden]  {
+
+  display: none !important;
+
+}
+
+*  {
+  box-sizing: border-box;
+
+}
+html,body  {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background: transparent;
+  overflow: hidden;
+  color: var(--tk-text);
+  font: 400 13px/1.55 var(--tk-font);
+  user-select: none;
+  -webkit-font-smoothing: antialiased;
+
+}
+button,input,textarea,select  {
+  font-family: inherit;
+  color: inherit;
+
+}
+img,svg  {
+  -webkit-user-drag: none;
+
+}
+::-webkit-scrollbar  {
+  width: 6px;
+  height: 6px;
+
+}
+::-webkit-scrollbar-track  {
+  background: transparent;
+
+}
+::-webkit-scrollbar-thumb  {
+  background: rgba(140, 180, 255, 0.18);
+  border-radius: 999px;
+
+}
+::-webkit-scrollbar-thumb:hover  {
+  background: rgba(140, 180, 255, 0.32);
+
+}
+:focus-visible  {
+  outline: 2px solid rgba(var(--tk-accent-rgb), 0.85);
+  outline-offset: 2px;
+
+}
+/* 通用滚动容器（配合外壳弹性滚动） */.tk-scroll  {
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+
+}
+.tk-row  {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+}
+.tk-row.between  {
+  justify-content: space-between;
+
+}
+.tk-col  {
+  display: flex;
+  flex-direction: column;
+
+}
+.tk-grow  {
+  flex: 1;
+  min-width: 0;
+
+}
+.tk-muted  {
+  color: var(--tk-text-3);
+
+}
+.tk-mono  {
+  font-family: var(--tk-mono);
+
+}
+.tk-hidden  {
+  display: none !important;
+
+}

@@ -1,0 +1,12 @@
+{
+  "id": "screenshot",
+  "name": "截图",
+  "description": "区域 / 全屏 / 指定窗口截图，保存后自动复制到剪贴板",
+  "version": "1.0.0",
+  "icon": "camera",
+  "accent": "#4C8DFF",
+  "order": 10,
+  "entry": "main.js",
+  "ui": "index.html",
+  "builtin": true
+}

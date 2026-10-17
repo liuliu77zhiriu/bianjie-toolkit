@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self' tk:; img-src 'self' data: blob: tk:; media-src 'self' data: blob: tk:; style-src 'self' 'unsafe-inline' tk:; script-src 'self' tk:;"
+    />
+    <title>便捷工具 · 录制</title>
+  </head>
+  <body>
+    <!-- 隐藏录制页：由主进程以 tk://app/recorder.html 加载，preload 暴露 window.recorderHost -->
+    <div id="recorder-root" aria-hidden="true"></div>
+    <script type="module" src="/src/recorder/main.ts"></script>
+  </body>
+</html>

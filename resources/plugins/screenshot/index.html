@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self' tk:; img-src 'self' tk: data: blob:; style-src 'self' 'unsafe-inline' tk:; script-src 'self' tk:;"
+    />
+    <link rel="stylesheet" href="tk://plugin-sdk/theme.css" />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="tk-page tk-scroll shot-page">
+      <div class="tk-header">
+        <div>
+          <h2 class="tk-title">截图</h2>
+          <p class="tk-sub">区域 / 全屏 / 指定窗口，保存后自动复制</p>
+        </div>
+        <span class="tk-badge accent" id="format-badge">PNG</span>
+      </div>
+
+      <div class="shot-actions">
+        <button class="tk-card interactive shot-action" id="btn-region" type="button">
+          <span class="shot-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+              <path d="M4 8V5.5A1.5 1.5 0 0 1 5.5 4H8M16 4h2.5A1.5 1.5 0 0 1 20 5.5V8M20 16v2.5a1.5 1.5 0 0 1-1.5 1.5H16M8 20H5.5A1.5 1.5 0 0 1 4 18.5V16" />
+              <rect x="8.5" y="8.5" width="7" height="7" rx="1.4" />
+            </svg>
+          </span>
+          <span class="shot-action-text">
+            <b>区域截图</b>
+            <small>拖拽框选任意区域</small>
+          </span>
+          <span class="tk-kbd">Alt+A</span>
+        </button>
+
+        <button class="tk-card interactive shot-action" id="btn-full" type="button">
+          <span class="shot-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+              <rect x="3.5" y="5" width="17" height="12" rx="2" />
+              <path d="M8 20h8" />
+            </svg>
+          </span>
+          <span class="shot-action-text">
+            <b>全屏截图</b>
+            <small>截取整块显示器</small>
+          </span>
+          <span class="tk-kbd">Alt+S</span>
+        </button>
+
+        <button class="tk-card interactive shot-action" id="btn-window" type="button">
+          <span class="shot-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+              <rect x="3.5" y="4.5" width="12" height="9" rx="1.5" />
+              <rect x="8.5" y="9.5" width="12" height="9" rx="1.5" />
+            </svg>
+          </span>
+          <span class="shot-action-text">
+            <b>指定窗口</b>
+            <small>从窗口缩略图中选择</small>
+          </span>
+          <span class="tk-badge">窗口 / 屏幕</span>
+        </button>
+      </div>
+
+      <div class="shot-display-row" id="full-display-row" hidden>
+        <label class="tk-label" for="display-select">全屏截图显示器</label>
+        <select class="tk-input shot-select" id="display-select"></select>
+      </div>
+
+      <div class="tk-card shot-preview" id="preview-card" hidden>
+        <div class="tk-row between">
+          <span class="tk-label">最近一次截图</span>
+          <span class="tk-hint" id="preview-size"></span>
+        </div>
+        <div class="shot-preview-frame">
+          <img id="preview-img" alt="最近一次截图预览" />
+        </div>
+        <div class="shot-path tk-mono" id="preview-path"></div>
+        <div class="tk-row shot-preview-actions">
+          <button class="tk-btn sm" id="btn-reveal" type="button">打开文件夹</button>
+          <button class="tk-btn sm" id="btn-copy" type="button">复制图片</button>
+          <span class="tk-grow"></span>
+          <span class="tk-badge accent" id="copied-badge" hidden>已复制</span>
+        </div>
+      </div>
+
+      <div class="tk-card shot-empty" id="empty-card">
+        <svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+          <rect x="3.5" y="5" width="17" height="14" rx="2.5" />
+          <circle cx="9" cy="10" r="1.6" />
+          <path d="M4.5 17l4.2-4.2a1.6 1.6 0 0 1 2.2 0L15 16.8" />
+        </svg>
+        <p>还没有截图，选一种方式开始吧</p>
+        <p class="tk-hint">快捷键 <span class="tk-kbd">Alt+A</span> 区域 · <span class="tk-kbd">Alt+S</span> 全屏，可在设置中修改</p>
+      </div>
+    </div>
+
+    <!-- 窗口 / 屏幕选择弹层 -->
+    <div class="shot-modal" id="source-modal" hidden>
+      <div class="shot-modal-panel tk-card">
+        <div class="tk-row between shot-modal-head">
+          <div>
+            <b class="shot-modal-title">选择来源</b>
+            <div class="tk-hint">点击缩略图完成截图 · Esc 关闭</div>
+          </div>
+          <div class="tk-row">
+            <button class="tk-btn sm ghost" id="btn-refresh" type="button">刷新</button>
+            <button class="tk-icon-btn" id="btn-close-modal" type="button" aria-label="关闭">✕</button>
+          </div>
+        </div>
+        <div class="tk-seg shot-tabs" id="source-tabs">
+          <button data-kind="window" class="active" type="button">窗口</button>
+          <button data-kind="screen" type="button">屏幕</button>
+        </div>
+        <div class="shot-source-grid" id="source-grid"></div>
+        <div class="tk-empty" id="source-empty" hidden>
+          <p>没有找到可截图的来源</p>
+          <p class="tk-hint">试试刷新，或先把目标窗口切换到前台</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="shot-busy" id="busy-mask" hidden>
+      <span class="shot-busy-dot"></span>
+      <span id="busy-text">正在截图…</span>
+    </div>
+
+    <script src="tk://plugin-sdk/sdk.js"></script>
+    <script src="app.js" type="module"></script>
+  </body>
+</html>

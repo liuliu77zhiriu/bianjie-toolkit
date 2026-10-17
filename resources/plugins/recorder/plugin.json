@@ -1,0 +1,12 @@
+{
+  "id": "recorder",
+  "name": "录屏",
+  "description": "录制屏幕或窗口，支持系统声音、麦克风混音与倒计时",
+  "version": "1.0.0",
+  "icon": "video",
+  "accent": "#FF6B9A",
+  "order": 20,
+  "entry": "main.js",
+  "ui": "index.html",
+  "builtin": true
+}

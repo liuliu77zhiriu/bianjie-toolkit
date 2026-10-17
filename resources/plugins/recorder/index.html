@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self' tk:; img-src 'self' tk: data: blob:; style-src 'self' 'unsafe-inline' tk:; script-src 'self' tk:;"
+    />
+    <link rel="stylesheet" href="tk://plugin-sdk/theme.css" />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="tk-page tk-scroll rec-page">
+      <div class="tk-header">
+        <div>
+          <h2 class="tk-title">录屏</h2>
+          <p class="tk-sub">录制屏幕 / 窗口，可选系统声音与麦克风</p>
+        </div>
+        <span class="tk-badge accent" id="audio-badge">系统声音</span>
+      </div>
+
+      <!-- 录制中状态 -->
+      <div class="tk-card rec-live" id="live-card" hidden>
+        <div class="tk-row between">
+          <div class="tk-row rec-live-left">
+            <span class="tk-dot recording"></span>
+            <div>
+              <b id="live-phase">录制中</b>
+              <div class="tk-hint" id="live-hint">录制指示器在屏幕右上角</div>
+            </div>
+          </div>
+          <span class="rec-timer tk-mono" id="live-timer">00:00</span>
+        </div>
+        <button class="tk-btn danger" id="btn-stop" type="button">停止录制</button>
+      </div>
+
+      <!-- 来源 -->
+      <div class="tk-card rec-section">
+        <div class="tk-row between">
+          <span class="tk-label">录制来源</span>
+          <div class="tk-row">
+            <button class="tk-btn sm ghost" id="btn-refresh" type="button">刷新</button>
+          </div>
+        </div>
+        <div class="tk-seg rec-tabs" id="source-tabs">
+          <button data-kind="screen" class="active" type="button">屏幕</button>
+          <button data-kind="window" type="button">窗口</button>
+        </div>
+        <div class="rec-screen-list" id="screen-list"></div>
+        <div class="rec-window-grid" id="window-grid"></div>
+        <div class="tk-empty rec-empty" id="source-empty" hidden>
+          <p>没有找到可录制的来源</p>
+          <p class="tk-hint">把目标窗口切到前台后点击刷新</p>
+        </div>
+        <div class="rec-selected tk-hint" id="selected-name">未选择来源</div>
+      </div>
+
+      <!-- 音频 -->
+      <div class="tk-card rec-section">
+        <span class="tk-label">声音</span>
+        <div class="tk-seg rec-seg" id="audio-seg">
+          <button data-audio="none" type="button">无</button>
+          <button data-audio="system" class="active" type="button">系统声音</button>
+          <button data-audio="mic" type="button">麦克风</button>
+          <button data-audio="system+mic" type="button">两者</button>
+        </div>
+        <p class="tk-hint rec-tip">「系统声音」录制电脑播放的声音（loopback），部分应用受系统隐私设置限制。</p>
+      </div>
+
+      <!-- 帧率 / 画质 / 倒计时 -->
+      <div class="tk-card rec-section">
+        <div class="rec-option">
+          <span class="tk-label">帧率</span>
+          <div class="tk-seg" id="fps-seg">
+            <button data-fps="24" type="button">24</button>
+            <button data-fps="30" class="active" type="button">30</button>
+            <button data-fps="60" type="button">60</button>
+          </div>
+        </div>
+        <div class="rec-option">
+          <div class="tk-row between">
+            <span class="tk-label">画质</span>
+            <span class="tk-hint" id="quality-label">均衡</span>
+          </div>
+          <input class="tk-input rec-range" id="quality-range" type="range" min="40" max="100" step="5" value="85" />
+        </div>
+        <div class="rec-option">
+          <span class="tk-label">开始倒计时</span>
+          <div class="tk-seg" id="countdown-seg">
+            <button data-countdown="0" type="button">无</button>
+            <button data-countdown="3" class="active" type="button">3 秒</button>
+            <button data-countdown="5" type="button">5 秒</button>
+          </div>
+        </div>
+      </div>
+
+      <button class="tk-btn primary rec-start" id="btn-start" type="button">
+        <span class="rec-start-dot"></span>
+        开始录制
+      </button>
+
+      <!-- 最近一次结果 -->
+      <div class="tk-card rec-result" id="result-card" hidden>
+        <div class="tk-row between">
+          <span class="tk-label">最近一次录制</span>
+          <span class="tk-badge" id="result-format">MP4</span>
+        </div>
+        <div class="rec-result-meta">
+          <span class="rec-result-item"><b id="result-duration">00:00</b><small>时长</small></span>
+          <span class="rec-result-item"><b id="result-size">-</b><small>体积</small></span>
+        </div>
+        <div class="rec-result-path tk-mono" id="result-path"></div>
+        <div class="tk-row rec-result-actions">
+          <button class="tk-btn sm" id="btn-open-file" type="button">打开文件</button>
+          <button class="tk-btn sm" id="btn-open-folder" type="button">打开文件夹</button>
+        </div>
+      </div>
+
+      <p class="tk-hint rec-foot">
+        快捷键 <span class="tk-kbd">Alt+R</span> 开始 / 停止录制 · 录制时面板会收起，右上角指示器可停止
+      </p>
+    </div>
+
+    <div class="rec-busy" id="busy-mask" hidden>
+      <span class="rec-busy-dot"></span>
+      <span id="busy-text">正在准备录制…</span>
+    </div>
+
+    <script src="tk://plugin-sdk/sdk.js"></script>
+    <script src="app.js" type="module"></script>
+  </body>
+</html>
