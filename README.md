@@ -1,4 +1,4 @@
-﻿# 便捷工具（Bianjie Toolkit）
+# 便捷工具（Bianjie Toolkit）
 
 > 一个常驻桌面的小工具箱：悬浮球唤起，蓝黑毛玻璃面板，截图 / 录屏 / 备忘录 / 计时器开箱即用，所有工具都是可编辑、可扩展的插件。
 
@@ -43,6 +43,13 @@
 ## 快速开始
 
 **直接使用**：解压 `release/便捷工具-v1.0.0-win64.zip` 后运行 `便捷工具.exe`（绿色免安装，首次启动会在 `%APPDATA%\便捷工具` 建立数据目录）；也可以直接运行 `release/便捷工具-win32-x64/便捷工具.exe`。
+
+**桌面快捷方式**：已创建桌面与开始菜单快捷方式「便捷工具」。如果移动了程序目录，运行下面命令重新创建：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/create-shortcut.ps1
+# 或指定 exe：-Target "D:\Tools\便捷工具\便捷工具.exe"
+```
 
 **从源码运行**：
 
