@@ -1,4 +1,4 @@
-/**
+﻿/**
  * 主进程 / 渲染进程 / 插件后端共享的类型定义。
  * 修改这里时请同步 docs/ARCHITECTURE.md 与 docs/PLUGIN_SDK.md。
  */
@@ -60,6 +60,8 @@ export interface Settings {
     ballOpacity: number;
     ballAutoHide: boolean;
     ballEdgeSnap: boolean;
+    /** 贴边半隐藏：鼠标靠近时自动弹出，离开后藏回边缘 */
+    ballEdgeHide: boolean;
     alwaysOnTop: boolean;
     showDock: boolean;
   };
@@ -388,3 +390,4 @@ declare global {
     tk: TkBridge;
   }
 }
+

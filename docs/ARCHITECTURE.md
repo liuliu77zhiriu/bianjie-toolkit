@@ -128,3 +128,4 @@ npm run package    # 打包绿色版（复制本地 Electron 运行时 + resedit
 - teammate 只写自己模块的单元/集成用例到 `tests/<module>.test.mjs`（Node 原生 test runner，`node --test`），并保证 `npm run smoke` 相关断言通过。
 
 
+

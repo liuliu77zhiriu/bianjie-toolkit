@@ -9,8 +9,18 @@ import { IPC } from '../../shared/defaults';
 const PANEL_WIDTH = 452;
 const PANEL_HEIGHT = 652;
 
+/** 贴边半隐藏时露在屏幕内的宽度（像素） */
+const BALL_EDGE_STRIP = 14;
+/** 完全展开时距离屏幕边缘的间距 */
+const BALL_EDGE_MARGIN = 10;
+/** 鼠标离开后重新藏回边缘的延迟 */
+const BALL_DOCK_DELAY = 650;
+
+type BallDockSide = 'left' | 'right';
+
 interface WindowState {
   ball: { x: number; y: number };
+  ballSide?: BallDockSide | null;
   panel: { x: number; y: number };
 }
 
@@ -35,6 +45,11 @@ export class WindowManager {
   panel: BrowserWindow | null = null;
   private state: JsonStore<WindowState>;
   private ballDragOffset: { x: number; y: number; originX: number; originY: number } | null = null;
+  private ballDockSide: BallDockSide | null = null;
+  private ballPopped = false;
+  private ballHovering = false;
+  private ballDockTimer: NodeJS.Timeout | null = null;
+  private ballAnimTimer: NodeJS.Timeout | null = null;
   private panelCloseTimer: NodeJS.Timeout | null = null;
   private panelClosing = false;
   private panelReady = false;
@@ -45,6 +60,7 @@ export class WindowManager {
   constructor(private deps: WindowDeps) {
     this.state = new JsonStore<WindowState>(path.join(deps.paths.userData, 'window-state.json'), {
       ball: { x: -9999, y: -9999 },
+      ballSide: null,
       panel: { x: -9999, y: -9999 },
     });
   }
@@ -122,6 +138,9 @@ export class WindowManager {
     win.once('ready-to-show', () => {
       if (this.deps.settings.general.showBall) win.show();
     });
+    win.webContents.once('did-finish-load', () => {
+      setTimeout(() => this.restoreBallDockState(), 120);
+    });
     win.on('closed', () => {
       this.ball = null;
     });
@@ -162,6 +181,13 @@ export class WindowManager {
     });
     ipc.handle('core', 'ball.dragStart', () => {
       if (!this.ball) return false;
+      this.clearBallDockTimer();
+      this.cancelBallAnim();
+      this.ballHovering = false;
+      if (this.ballDockSide) {
+        this.ballPopped = true;
+        this.sendBallDocked();
+      }
       const point = screen.getCursorScreenPoint();
       const [wx, wy] = this.ball.getPosition();
       this.ballDragOffset = { x: point.x - wx, y: point.y - wy, originX: point.x, originY: point.y };
@@ -175,18 +201,45 @@ export class WindowManager {
     });
     ipc.handle('core', 'ball.dragEnd', (args) => {
       if (!this.ball) return false;
-      const { x, y, moved } = args as { x: number; y: number; moved: boolean };
+      const { moved } = args as { x: number; y: number; moved: boolean };
       const [wx, wy] = this.ball.getPosition();
-      if (moved && this.deps.settings.appearance.ballEdgeSnap) {
-        const snapped = this.snapToEdges(wx, wy, this.ball.getBounds());
-        this.ball.setPosition(snapped.x, snapped.y);
+      this.cancelBallAnim();
+      if (moved) {
+        const bounds = this.ball.getBounds();
+        const area = this.ballDisplay().workArea;
+        const side: BallDockSide = wx + bounds.width / 2 < area.x + area.width / 2 ? 'left' : 'right';
+        const nearEdge =
+          side === 'left'
+            ? wx <= area.x + 44
+            : wx + bounds.width >= area.x + area.width - 44;
+        if (this.deps.settings.appearance.ballEdgeHide && nearEdge) {
+          this.setBallDock(side, false);
+        } else {
+          if (this.deps.settings.appearance.ballEdgeSnap) {
+            const snapped = this.snapToEdges(wx, wy, bounds);
+            this.ballDockSide = null;
+            this.ballPopped = false;
+            this.ball.setPosition(snapped.x, snapped.y);
+          } else {
+            this.ballDockSide = null;
+            this.ballPopped = false;
+          }
+          this.persistBallState();
+          this.sendBallDocked();
+        }
       }
-      const [fx, fy] = this.ball.getPosition();
-      this.state.update((s) => {
-        s.ball = { x: fx, y: fy };
-      });
       this.ballDragOffset = null;
       if (!moved) this.togglePanel();
+      return true;
+    });
+    ipc.handle('core', 'ball.dockState', () => ({
+      docked: !!this.ballDockSide,
+      popped: this.ballPopped,
+      side: this.ballDockSide,
+      strip: BALL_EDGE_STRIP,
+    }));
+    ipc.handle('core', 'ball.hover', (args) => {
+      this.handleBallHover(!!(args as { hovering?: boolean })?.hovering);
       return true;
     });
     ipc.handle('core', 'ball.setVisible', (args) => {
@@ -220,6 +273,206 @@ export class WindowManager {
     };
   }
 
+  /* ------------------------------------------------------------ 贴边半隐藏 */
+
+  private ballDisplay() {
+    const win = this.ball;
+    return win ? screen.getDisplayMatching(win.getBounds()) : screen.getPrimaryDisplay();
+  }
+
+  private dockedPosition(side: BallDockSide): { x: number; y: number } {
+    const win = this.ball;
+    if (!win) return { x: 0, y: 0 };
+    const bounds = win.getBounds();
+    const area = this.ballDisplay().workArea;
+    const y = Math.max(area.y, Math.min(area.y + area.height - bounds.height, bounds.y));
+    const x = side === 'left' ? area.x - (bounds.width - BALL_EDGE_STRIP) : area.x + area.width - BALL_EDGE_STRIP;
+    return { x: Math.round(x), y: Math.round(y) };
+  }
+
+  private fullVisiblePosition(side: BallDockSide): { x: number; y: number } {
+    const win = this.ball;
+    if (!win) return { x: 0, y: 0 };
+    const bounds = win.getBounds();
+    const area = this.ballDisplay().workArea;
+    const y = Math.max(area.y, Math.min(area.y + area.height - bounds.height, bounds.y));
+    const x =
+      side === 'left'
+        ? area.x + BALL_EDGE_MARGIN
+        : area.x + area.width - bounds.width - BALL_EDGE_MARGIN;
+    return { x: Math.round(x), y: Math.round(y) };
+  }
+
+  private cancelBallAnim() {
+    if (this.ballAnimTimer) {
+      clearInterval(this.ballAnimTimer);
+      this.ballAnimTimer = null;
+    }
+  }
+
+  private animateBallTo(target: { x: number; y: number }, duration = 220) {
+    const win = this.ball;
+    if (!win || win.isDestroyed()) return;
+    this.cancelBallAnim();
+    const [sx, sy] = win.getPosition();
+    const started = Date.now();
+    this.ballAnimTimer = setInterval(() => {
+      const current = this.ball;
+      if (!current || current.isDestroyed()) {
+        this.cancelBallAnim();
+        return;
+      }
+      const t = Math.min(1, (Date.now() - started) / duration);
+      const k = 1 - Math.pow(1 - t, 3);
+      current.setPosition(Math.round(sx + (target.x - sx) * k), Math.round(sy + (target.y - sy) * k));
+      if (t >= 1) {
+        this.cancelBallAnim();
+        this.persistBallState();
+      }
+    }, 15);
+  }
+
+  private persistBallState() {
+    const win = this.ball;
+    if (!win || win.isDestroyed()) return;
+    const [x, y] = win.getPosition();
+    this.state.update((state) => {
+      state.ball = { x, y };
+      state.ballSide = this.ballDockSide;
+    });
+  }
+
+  private sendBallDocked() {
+    const win = this.ball;
+    if (!win || win.isDestroyed()) return;
+    win.webContents.send(IPC.event, {
+      topic: 'ball:docked',
+      payload: {
+        docked: !!this.ballDockSide && !this.ballPopped,
+        side: this.ballDockSide,
+        strip: BALL_EDGE_STRIP,
+      },
+    });
+  }
+
+  private clearBallDockTimer() {
+    if (this.ballDockTimer) {
+      clearTimeout(this.ballDockTimer);
+      this.ballDockTimer = null;
+    }
+  }
+
+  /** 让悬浮球停靠到屏幕左/右边缘（只露出 BALL_EDGE_STRIP 像素）；传 null 取消停靠 */
+  setBallDock(side: BallDockSide | null, animate = true) {
+    const win = this.ball;
+    if (!win || win.isDestroyed()) return;
+    this.clearBallDockTimer();
+    if (!side) {
+      const previous = this.ballDockSide;
+      this.ballDockSide = null;
+      this.ballPopped = false;
+      if (previous) {
+        const target = this.fullVisiblePosition(previous);
+        if (animate) this.animateBallTo(target);
+        else {
+          win.setPosition(target.x, target.y);
+          this.persistBallState();
+        }
+      }
+      this.sendBallDocked();
+      return;
+    }
+    this.ballDockSide = side;
+    this.ballPopped = false;
+    const target = this.dockedPosition(side);
+    if (animate) this.animateBallTo(target);
+    else {
+      win.setPosition(target.x, target.y);
+      this.persistBallState();
+    }
+    this.sendBallDocked();
+  }
+
+  private popBallOut() {
+    if (!this.ballDockSide || this.ballPopped) return;
+    this.clearBallDockTimer();
+    this.ballPopped = true;
+    this.animateBallTo(this.fullVisiblePosition(this.ballDockSide));
+    this.sendBallDocked();
+  }
+
+  private scheduleBallDock() {
+    this.clearBallDockTimer();
+    this.ballDockTimer = setTimeout(() => {
+      this.ballDockTimer = null;
+      if (this.ballHovering || !this.ballDockSide) return;
+      this.ballPopped = false;
+      this.dockBallSilently(this.ballDockSide);
+    }, BALL_DOCK_DELAY);
+  }
+
+  private dockBallSilently(side: BallDockSide) {
+    const win = this.ball;
+    if (!win || win.isDestroyed()) return;
+    this.ballDockSide = side;
+    this.ballPopped = false;
+    const target = this.dockedPosition(side);
+    this.animateBallTo(target, 260);
+    this.sendBallDocked();
+  }
+
+  private handleBallHover(hovering: boolean) {
+    this.ballHovering = hovering;
+    if (hovering) {
+      this.clearBallDockTimer();
+      this.popBallOut();
+      return;
+    }
+    if (this.ballDockSide) {
+      this.scheduleBallDock();
+    }
+  }
+
+  private detectDockSideFromBounds(bounds: { x: number; y: number; width: number; height: number }): BallDockSide | null {
+    const area = screen.getDisplayMatching(bounds).workArea;
+    if (bounds.x + bounds.width >= area.x + area.width + 10) return 'right';
+    if (bounds.x <= area.x - 10) return 'left';
+    return null;
+  }
+
+  private detectNearEdgeSide(bounds: { x: number; y: number; width: number; height: number }): BallDockSide | null {
+    const area = screen.getDisplayMatching(bounds).workArea;
+    if (bounds.x <= area.x + 36) return 'left';
+    if (bounds.x + bounds.width >= area.x + area.width - 36) return 'right';
+    return null;
+  }
+
+  private restoreBallDockState() {
+    const win = this.ball;
+    if (!win || win.isDestroyed()) return;
+    const saved = this.state.get();
+    const settingOn = this.deps.settings.appearance.ballEdgeHide;
+    let derived = saved.ballSide ?? this.detectDockSideFromBounds(win.getBounds());
+    if (!derived && settingOn) derived = this.detectNearEdgeSide(win.getBounds());
+    const side = settingOn ? derived : null;
+    if (side) {
+      this.ballDockSide = side;
+      this.ballPopped = false;
+      const target = this.dockedPosition(side);
+      win.setPosition(target.x, target.y);
+      this.persistBallState();
+    } else if (saved.ballSide) {
+      // 之前是贴边状态但用户关闭了开关：恢复到完整可见
+      const previous = saved.ballSide;
+      this.ballDockSide = null;
+      const target = this.fullVisiblePosition(previous);
+      win.setPosition(target.x, target.y);
+      this.persistBallState();
+    }
+    setTimeout(() => this.sendBallDocked(), 180);
+  }
+
+
   showBall() {
     const win = this.createBall();
     win.showInactive();
@@ -240,11 +493,23 @@ export class WindowManager {
   }
 
   applyBallAppearance(settings: Settings) {
+    this.deps.settings = settings;
     if (!this.ball) return;
     const size = settings.appearance.ballSize + 16;
     const bounds = this.ball.getBounds();
     this.ball.setBounds({ x: bounds.x, y: bounds.y, width: size, height: size });
+    if (!settings.appearance.ballEdgeHide && this.ballDockSide) {
+      this.setBallDock(null, false);
+    } else if (settings.appearance.ballEdgeHide && !this.ballDockSide) {
+      const near = this.detectNearEdgeSide(this.ball.getBounds());
+      if (near) this.setBallDock(near, true);
+    } else if (this.ballDockSide) {
+      const target = this.dockedPosition(this.ballDockSide);
+      this.ball.setPosition(target.x, target.y);
+      this.persistBallState();
+    }
     if (settings.general.showBall && !this.ball.isVisible()) this.ball.showInactive();
+    this.sendBallDocked();
   }
 
   private showBallMenu() {
@@ -490,6 +755,9 @@ export class WindowManager {
 }
 
 export { PANEL_WIDTH, PANEL_HEIGHT };
+
+
+
 
 
 

@@ -96,6 +96,7 @@ export class SettingsService extends EventEmitter {
       ballOpacity: num(appearance.ballOpacity, 0.35, 1, s.appearance.ballOpacity),
       ballAutoHide: bool(appearance.ballAutoHide, s.appearance.ballAutoHide),
       ballEdgeSnap: bool(appearance.ballEdgeSnap, s.appearance.ballEdgeSnap),
+      ballEdgeHide: bool(appearance.ballEdgeHide, s.appearance.ballEdgeHide),
       alwaysOnTop: bool(appearance.alwaysOnTop, s.appearance.alwaysOnTop),
       showDock: bool(appearance.showDock, s.appearance.showDock),
     });
@@ -147,4 +148,5 @@ export class SettingsService extends EventEmitter {
     return s;
   }
 }
+
 

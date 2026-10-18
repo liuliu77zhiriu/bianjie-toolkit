@@ -123,6 +123,13 @@ export function AppearanceTab({ settings }: { settings: Settings }) {
             label="悬浮球贴边吸附"
           />
         </Row>
+        <Row title="贴边半隐藏" desc="停靠屏幕左右边缘时只露出一小条，鼠标靠近自动弹出，离开后重新藏回">
+          <Switch
+            checked={appearance.ballEdgeHide}
+            onChange={(next) => void patch({ appearance: { ballEdgeHide: next } }, next ? '鼠标靠近时自动弹出' : '已关闭贴边半隐藏')}
+            label="贴边半隐藏"
+          />
+        </Row>
       </Group>
 
       <Group title="窗口与布局">

@@ -21,6 +21,7 @@ export const DEFAULT_SETTINGS: Settings = {
     ballOpacity: 1,
     ballAutoHide: true,
     ballEdgeSnap: true,
+    ballEdgeHide: true,
     alwaysOnTop: false,
     showDock: true,
   },
@@ -102,4 +103,5 @@ export const IPC = {
   recorderState: 'tk:recorder:state',
   recorderError: 'tk:recorder:error',
 } as const;
+
 

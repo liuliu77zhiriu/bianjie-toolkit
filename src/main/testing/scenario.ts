@@ -4,7 +4,7 @@
  */
 import path from 'node:path';
 import fs from 'node:fs';
-import { BrowserWindow } from 'electron';
+import { BrowserWindow, screen } from 'electron';
 import type { AppPaths, MediaApi, PluginRuntimeInfo } from '../../shared/types';
 import type { IpcHub } from '../core/ipc';
 import type { Logger } from '../core/logger';
@@ -238,6 +238,38 @@ export async function runSmoke(env: SmokeEnv): Promise<void> {
     return '点击 → 面板打开';
   });
 
+  await run('悬浮球贴边半隐藏', async () => {
+    const ball = env.windows.ball;
+    if (!ball) throw new Error('悬浮球不存在');
+    await env.windows.hidePanelImmediate();
+    await wait(350);
+    env.windows.setBallDock('right', false);
+    await wait(350);
+    const docked = ball.getBounds();
+    const area = screen.getDisplayMatching(docked).workArea;
+    const visible = area.x + area.width - docked.x;
+    if (visible > 40) throw new Error(`半隐藏后露出过宽：${visible}px`);
+    const dockedShot = await ball.webContents.capturePage();
+    fs.writeFileSync(path.join(outDir, '18-ball-docked.png'), dockedShot.toPNG());
+    await ball.webContents.executeJavaScript(
+      "(() => { const el = document.querySelector('.ball-root'); el.dispatchEvent(new MouseEvent('mouseover', { bubbles: true, relatedTarget: document.body })); return true; })()"
+    );
+    await wait(600);
+    const popped = ball.getBounds();
+    if (popped.x >= docked.x - 20) throw new Error(`悬停后未弹出：docked.x=${docked.x} popped.x=${popped.x}`);
+    const poppedShot = await ball.webContents.capturePage();
+    fs.writeFileSync(path.join(outDir, '19-ball-popped.png'), poppedShot.toPNG());
+    await ball.webContents.executeJavaScript(
+      "(() => { const el = document.querySelector('.ball-root'); el.dispatchEvent(new MouseEvent('mouseout', { bubbles: true, relatedTarget: document.body })); return true; })()"
+    );
+    await wait(1500);
+    const reDocked = ball.getBounds();
+    if (Math.abs(reDocked.x - docked.x) > 6) throw new Error(`离开后未重新隐藏：${reDocked.x} vs ${docked.x}`);
+    env.windows.setBallDock(null, false);
+    await wait(250);
+    return `露出 ${visible}px · hover 弹出 x=${popped.x} · 离开后回到 x=${reDocked.x}`;
+  });
+
   await run('overlay 框选基础能力', async () => {
     try {
     const promise = env.overlay.pickRegion({ hint: 'E2E 框选' });
@@ -422,6 +454,9 @@ export async function runSmoke(env: SmokeEnv): Promise<void> {
   }
   if (failed.length) env.logger.warn(`[test] 失败 ${failed.length} 项`);
 }
+
+
+
 
 
 

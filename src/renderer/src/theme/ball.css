@@ -1,4 +1,4 @@
-html,
+﻿html,
 body,
 #root {
   height: 100%;
@@ -116,4 +116,57 @@ body,
     animation: none !important;
     transition-duration: 0.01ms !important;
   }
+}
+/* ------------------------------------------------------------ 贴边半隐藏 */
+
+.edge-grip {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 7px;
+  height: 30px;
+  transform: translateY(-50%) scaleX(0.7);
+  border-radius: 0 7px 7px 0;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.28), rgba(var(--tk-accent-rgb, 76, 141, 255), 0.85) 45%, rgba(var(--tk-accent-rgb, 76, 141, 255), 0.22));
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-left: 0;
+  box-shadow:
+    0 0 14px rgba(var(--tk-accent-rgb, 76, 141, 255), 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  display: grid;
+  place-items: center;
+  opacity: 0;
+  transition: opacity 0.28s ease, transform 0.32s cubic-bezier(0.34, 1.4, 0.5, 1);
+  pointer-events: none;
+}
+
+.edge-grip i {
+  width: 2px;
+  height: 14px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.85);
+  box-shadow: 0 0 6px rgba(255, 255, 255, 0.6);
+}
+
+.ball-root.dock-left .edge-grip {
+  right: 0;
+  left: auto;
+  border-radius: 7px 0 0 7px;
+  border-left: 1px solid rgba(255, 255, 255, 0.22);
+  border-right: 0;
+  transform: translateY(-50%) scaleX(0.7);
+}
+
+.ball-root.docked .edge-grip {
+  opacity: 0.92;
+  transform: translateY(-50%) scaleX(1);
+}
+
+.ball-root.docked .orb {
+  transform: scale(0.94);
+  transition: transform 0.3s ease;
+}
+
+.ball-root.docked.idle {
+  opacity: calc(var(--ball-opacity, 1) * 0.78);
 }

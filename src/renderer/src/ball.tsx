@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type CSSProperties } from 'react';
+﻿import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { createRoot } from 'react-dom/client';
 import type { Settings } from '@shared/types';
 import { invoke, on } from './lib/bridge';
@@ -9,6 +9,10 @@ function BallApp() {
   const [settings, setSettings] = useState<Settings | null>(null);
   const [idle, setIdle] = useState(false);
   const [pressed, setPressed] = useState(false);
+  const [dock, setDock] = useState<{ docked: boolean; side: 'left' | 'right' | null }>({
+    docked: false,
+    side: null,
+  });
   const orbRef = useRef<HTMLDivElement | null>(null);
   const idleTimer = useRef<number | null>(null);
   const drag = useRef({
@@ -31,9 +35,20 @@ function BallApp() {
     const off = on('settings:changed', (payload) => {
       if (payload && typeof payload === 'object') setSettings(payload as Settings);
     });
+    void invoke<{ docked?: boolean; side?: 'left' | 'right' | null }>('core', 'ball.dockState')
+      .then((state) => {
+        if (alive && state) setDock({ docked: !!state.docked, side: state.side ?? null });
+      })
+      .catch(() => undefined);
+    const offDock = on('ball:docked', (payload) => {
+      const data = payload as { docked?: boolean; side?: 'left' | 'right' | null } | undefined;
+      setDock({ docked: !!data?.docked, side: data?.side ?? null });
+      if (data?.docked) setIdle(false);
+    });
     return () => {
       alive = false;
       off();
+      offDock();
     };
   }, []);
 
@@ -121,7 +136,7 @@ function BallApp() {
 
   return (
     <div
-      className={`ball-root${idle && autoHide ? ' idle' : ''}${pressed ? ' pressed' : ''}`}
+      className={`ball-root${idle && autoHide ? ' idle' : ''}${pressed ? ' pressed' : ''}${dock.docked ? ' docked' : ''}${dock.side ? ` dock-${dock.side}` : ''}`}
       style={
         {
           '--ball-opacity': opacity,
@@ -132,11 +147,16 @@ function BallApp() {
       onMouseEnter={() => {
         setIdle(false);
         if (idleTimer.current) window.clearTimeout(idleTimer.current);
+        void window.tk.ball.setHover(true);
       }}
       onMouseLeave={() => {
+        void window.tk.ball.setHover(false);
         if (!drag.current.active) scheduleIdle(1800);
       }}
     >
+      <span className="edge-grip" aria-hidden="true">
+        <i />
+      </span>
       <div
         ref={orbRef}
         className="orb"
@@ -165,4 +185,5 @@ function BallApp() {
 }
 
 createRoot(document.getElementById('root')!).render(<BallApp />);
+
 

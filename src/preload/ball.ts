@@ -1,4 +1,4 @@
-import { contextBridge } from 'electron';
+﻿import { contextBridge } from 'electron';
 import { invoke, makeEventBus } from './base';
 import type { PreloadInfo, TkBridge } from '../shared/types';
 
@@ -35,7 +35,7 @@ const bridge: TkBridge = {
     dragStart: () => void invoke('core', 'ball.dragStart'),
     dragMove: (x: number, y: number) => void invoke('core', 'ball.dragMove', { x, y }),
     dragEnd: (x?: number, y?: number, moved?: boolean) => void invoke('core', 'ball.dragEnd', { x, y, moved }),
-    setHover: () => undefined,
+    setHover: (hovering: boolean) => void invoke('core', 'ball.hover', { hovering }),
     hide: () => void invoke('core', 'ball.setVisible', { visible: false }),
     show: () => void invoke('core', 'ball.setVisible', { visible: true }),
   },
@@ -52,3 +52,4 @@ const bridge: TkBridge = {
 };
 
 contextBridge.exposeInMainWorld('tk', bridge);
+
