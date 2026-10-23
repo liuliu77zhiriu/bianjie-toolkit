@@ -1,4 +1,4 @@
-﻿import type { Settings } from './types';
+﻿import type { Settings, ThemePreset } from './types';
 
 export const APP_NAME = '便捷工具';
 export const APP_ID = 'com.bianjie.toolkit';
@@ -24,6 +24,8 @@ export const DEFAULT_SETTINGS: Settings = {
     ballEdgeHide: true,
     alwaysOnTop: false,
     showDock: true,
+    wallpaper: '',
+    wallpaperOpacity: 0.38,
   },
   shortcuts: {
     togglePanel: 'Alt+Space',
@@ -103,5 +105,102 @@ export const IPC = {
   recorderState: 'tk:recorder:state',
   recorderError: 'tk:recorder:error',
 } as const;
-
-
+/** 内置主题（同时包含壁纸选择器；壁纸 id 对应 resources/wallpapers 清单） */
+export const THEME_PRESETS: ThemePreset[] = [
+  {
+    id: 'midnight',
+    name: '午夜蓝黑',
+    description: '默认黑玻璃 + 星蓝强调色',
+    builtin: true,
+    tokens: {
+      accent: '#4C8DFF',
+      panelOpacity: 0.84,
+      blur: true,
+      animation: 'full',
+      wallpaper: '',
+      wallpaperOpacity: 0.38,
+      ballEdgeHide: true,
+      showDock: true,
+    },
+  },
+  {
+    id: 'deep-sea',
+    name: '深海',
+    description: '青蓝玻璃与深海壁纸',
+    builtin: true,
+    tokens: {
+      accent: '#46D7D1',
+      panelOpacity: 0.82,
+      blur: true,
+      animation: 'full',
+      wallpaper: 'builtin:ocean',
+      wallpaperOpacity: 0.42,
+      ballEdgeHide: true,
+      showDock: true,
+    },
+  },
+  {
+    id: 'aurora',
+    name: '极光',
+    description: '紫蓝极光与冷调玻璃',
+    builtin: true,
+    tokens: {
+      accent: '#8A7BFF',
+      panelOpacity: 0.8,
+      blur: true,
+      animation: 'full',
+      wallpaper: 'builtin:aurora',
+      wallpaperOpacity: 0.45,
+      ballEdgeHide: true,
+      showDock: true,
+    },
+  },
+  {
+    id: 'graphite',
+    name: '石墨',
+    description: '无彩色灰阶，安静克制',
+    builtin: true,
+    tokens: {
+      accent: '#9AA6B8',
+      panelOpacity: 0.9,
+      blur: true,
+      animation: 'lite',
+      wallpaper: 'builtin:graphite',
+      wallpaperOpacity: 0.32,
+      ballEdgeHide: true,
+      showDock: true,
+    },
+  },
+  {
+    id: 'dusk',
+    name: '暮色',
+    description: '暖橙落日与深色玻璃',
+    builtin: true,
+    tokens: {
+      accent: '#FFB454',
+      panelOpacity: 0.82,
+      blur: true,
+      animation: 'full',
+      wallpaper: 'builtin:dusk',
+      wallpaperOpacity: 0.42,
+      ballEdgeHide: true,
+      showDock: true,
+    },
+  },
+  {
+    id: 'pure-black',
+    name: '极简黑',
+    description: '近乎纯黑，关闭毛玻璃',
+    builtin: true,
+    tokens: {
+      accent: '#7C8AA5',
+      panelOpacity: 0.94,
+      blur: false,
+      animation: 'lite',
+      wallpaper: '',
+      wallpaperOpacity: 0.3,
+      ballEdgeHide: true,
+      showDock: true,
+    },
+  },
+];

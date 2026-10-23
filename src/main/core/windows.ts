@@ -38,6 +38,8 @@ export interface WindowDeps {
   ipc: IpcHub;
   settings: Settings;
   menuActions: BallMenuActions;
+  /** 打开独立设置窗口 */
+  openSettingsWindow: (tab?: string) => void;
 }
 
 export class WindowManager {
@@ -644,6 +646,10 @@ export class WindowManager {
   }
 
   openPanel(toolId?: string) {
+    if (toolId === 'settings') {
+      this.deps.openSettingsWindow();
+      return;
+    }
     const win = this.createPanel();
     if (this.panelCloseTimer) {
       clearTimeout(this.panelCloseTimer);
@@ -755,6 +761,7 @@ export class WindowManager {
 }
 
 export { PANEL_WIDTH, PANEL_HEIGHT };
+
 
 
 

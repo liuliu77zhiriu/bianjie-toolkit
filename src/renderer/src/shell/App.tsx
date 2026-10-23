@@ -1,4 +1,4 @@
-﻿import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import type { PluginRuntimeInfo, Settings } from '@shared/types';
 import {
   invoke,
@@ -10,13 +10,13 @@ import {
   useElasticScroll,
   usePlugins,
   useSettings,
+  useWallpaper,
 } from '../lib/bridge';
 import { Header } from './Header';
 import { Dock, type DockItem } from './Dock';
 import { HomePage } from './HomePage';
 import { Toaster } from './Toaster';
 import { ToolFrame } from './ToolFrame';
-import { SettingsPage, PluginEditorPage } from '../pages/settings';
 import {
   dispatchPluginEvent,
   notifyPanelVisibility,
@@ -24,11 +24,7 @@ import {
 } from './pluginBus';
 import { Icon } from '../ui/Icon';
 
-type View =
-  | { kind: 'home' }
-  | { kind: 'tool'; pluginId: string }
-  | { kind: 'settings'; tab?: string }
-  | { kind: 'editor'; pluginId: string };
+type View = { kind: 'home' } | { kind: 'tool'; pluginId: string };
 
 const DOCK_DEFS: Array<DockItem & { plugin?: boolean; always?: boolean }> = [
   { id: 'home', label: '首页', icon: 'home', always: true },
@@ -47,15 +43,14 @@ function accentRgb(hex: string): string {
 
 function viewKey(view: View): string {
   if (view.kind === 'home') return 'home';
-  if (view.kind === 'tool') return `tool:${view.pluginId}`;
-  if (view.kind === 'settings') return `settings:${view.tab ?? ''}`;
-  return `editor:${view.pluginId}`;
+  return `tool:${view.pluginId}`;
 }
 
 export default function App() {
   const settings = useSettings();
   const plugins = usePlugins();
   const commands = useCommands();
+  const wallpaper = useWallpaper();
   useElasticScroll();
 
   const [stack, setStack] = useState<View[]>([{ kind: 'home' }]);
@@ -67,9 +62,7 @@ export default function App() {
   const current = stack[stack.length - 1];
 
   const currentPlugin: PluginRuntimeInfo | null =
-    current.kind === 'tool' || current.kind === 'editor'
-      ? plugins.find((plugin) => plugin.id === current.pluginId) ?? null
-      : null;
+    current.kind === 'tool' ? plugins.find((plugin) => plugin.id === current.pluginId) ?? null : null;
 
   const replayOpening = useCallback(() => {
     setClosing(false);
@@ -99,10 +92,14 @@ export default function App() {
     setPageKey((value) => value + 1);
   }, []);
 
+  const openSettings = useCallback((tab?: string) => {
+    void invoke('core', 'settings.openWindow', { tab }).catch(() => toast('打开设置窗口失败', 'error'));
+  }, []);
+
   const openTool = useCallback(
     (pluginId: string) => {
       if (pluginId === 'settings' || pluginId === 'settings:plugins') {
-        navigate({ kind: 'settings', tab: pluginId.includes(':') ? 'plugins' : undefined });
+        openSettings(pluginId.includes(':') ? 'plugins' : undefined);
         return;
       }
       const plugin = plugins.find((item) => item.id === pluginId);
@@ -121,10 +118,8 @@ export default function App() {
       if (current.kind === 'tool' && current.pluginId === pluginId) return;
       navigate({ kind: 'tool', pluginId });
     },
-    [plugins, navigate, current]
+    [plugins, navigate, current, openSettings]
   );
-
-  const openSettings = useCallback((tab?: string) => navigate({ kind: 'settings', tab }), [navigate]);
 
   const runQuickAction = useCallback((commandId: string) => {
     runCommand(commandId)
@@ -142,7 +137,7 @@ export default function App() {
     const offOpening = on('panel:opening', (payload) => {
       replayOpening();
       const toolId = (payload as { toolId?: string } | null)?.toolId;
-      if (toolId === 'settings') resetTo([{ kind: 'settings' }]);
+      if (toolId === 'settings') openSettings();
       else if (toolId) resetTo([{ kind: 'home' }, { kind: 'tool', pluginId: toolId }]);
       else resetTo([{ kind: 'home' }]);
     });
@@ -162,16 +157,6 @@ export default function App() {
         const pluginId = (msg.payload as { pluginId?: string } | undefined)?.pluginId;
         if (pluginId) reloadPluginFrame(pluginId);
       }
-      if (msg.topic === 'settings:changed') {
-        // hooks 已处理状态，这里只负责同步主题给 iframe
-        const next = msg.payload as Settings | undefined;
-        if (next) {
-          window.requestAnimationFrame(() => {
-            const off = on('noop', () => undefined);
-            off();
-          });
-        }
-      }
     });
     return () => {
       offOpening();
@@ -179,7 +164,7 @@ export default function App() {
       offClosing();
       offAny();
     };
-  }, [replayOpening, resetTo]);
+  }, [replayOpening, resetTo, openSettings]);
 
   useEffect(() => {
     if (openTimer.current) window.clearTimeout(openTimer.current);
@@ -214,17 +199,16 @@ export default function App() {
 
   const activeDockId = useMemo(() => {
     if (current.kind === 'home') return 'home';
-    if (current.kind === 'settings' || current.kind === 'editor') return 'settings';
     return dockItems.some((item) => item.id === current.pluginId) ? current.pluginId : null;
   }, [current, dockItems]);
 
   const handleDock = useCallback(
     (id: string) => {
       if (id === 'home') resetTo([{ kind: 'home' }]);
-      else if (id === 'settings') navigate({ kind: 'settings' });
+      else if (id === 'settings') openSettings();
       else openTool(id);
     },
-    [resetTo, navigate, openTool]
+    [resetTo, openSettings, openTool]
   );
 
   if (!settings) {
@@ -255,18 +239,6 @@ export default function App() {
         showBrand: true,
         canBack: false,
         showSettings: true,
-      };
-    }
-    if (current.kind === 'settings') {
-      return { title: '设置', subtitle: '外观、能力与扩展', showBrand: false, canBack: true, showSettings: false };
-    }
-    if (current.kind === 'editor') {
-      return {
-        title: '代码编辑',
-        subtitle: currentPlugin ? `自定义 ${currentPlugin.manifest.name}` : '插件',
-        showBrand: false,
-        canBack: true,
-        showSettings: false,
       };
     }
     return {
@@ -311,25 +283,6 @@ export default function App() {
         />
       );
     }
-    if (current.kind === 'settings') {
-      return (
-        <SettingsPage initialTab={current.tab} onOpenEditor={(pluginId) => navigate({ kind: 'editor', pluginId })} />
-      );
-    }
-    if (current.kind === 'editor') {
-      if (!currentPlugin) {
-        return (
-          <div className="tk-empty">
-            <Icon name="code" size={26} />
-            <div>插件不存在，可能在外部被删除</div>
-            <button className="tk-btn sm" onClick={goBack}>
-              返回
-            </button>
-          </div>
-        );
-      }
-      return <PluginEditorPage pluginId={currentPlugin.id} onDone={goBack} />;
-    }
     return null;
   };
 
@@ -339,6 +292,12 @@ export default function App() {
       style={panelStyle}
       data-animation={settings.appearance.animation}
     >
+      {wallpaper ? (
+        <div
+          className="panel-wallpaper"
+          style={{ backgroundImage: `url("${wallpaper.url}")`, opacity: wallpaper.opacity }}
+        />
+      ) : null}
       <Header
         title={header.title}
         subtitle={header.subtitle}
@@ -347,7 +306,7 @@ export default function App() {
         showSettings={header.showSettings}
         compact={current.kind === 'tool'}
         onBack={goBack}
-        onSettings={() => navigate({ kind: 'settings' })}
+        onSettings={() => openSettings()}
         onClose={() => window.tk.panel.close()}
       />
       <main className="panel-content">

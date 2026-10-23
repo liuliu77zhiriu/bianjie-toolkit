@@ -1,4 +1,4 @@
-﻿# 插件开发 SDK · 便捷工具
+# 插件开发 SDK · 便捷工具
 
 一个工具（插件）就是一个目录，包含：
 
@@ -13,6 +13,11 @@ resources/plugins/<id>/          内置插件目录（只读）
 
 用户安装/编辑的插件在 `%APPDATA%/便捷工具/plugins/<id>/`，用户对内置插件的修改保存在
 `%APPDATA%/便捷工具/overrides/<id>/`，加载优先级：overrides > plugins(用户) > resources(内置)。
+
+编辑器里删除内置文件时不会改动只读目录，而是在 `overrides/<id>/.deleted.json` 写入**墓碑**
+（相对路径数组）；`resolveFile` 会跳过墓碑，重新创建/写入同名文件会自动清墓碑。覆盖层文件
+（包括新建文件）优先于基座；删除覆盖文件 = 恢复内置原版。插件清单 `plugin.json` 被墓碑删除时
+插件进入错误态但仍保留在列表，可进入编辑器恢复。
 
 > 禁止直接 `require`/`import` npm 包或 Node 内置模块。插件后端只能使用 `ctx` 暴露的能力
 > 与 `ctx.electron`（Electron 原生 API）。所有 UI 只能通过 `window.toolkit` 与后端通信。

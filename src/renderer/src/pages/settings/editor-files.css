@@ -1,0 +1,304 @@
+/* ============================================================
+ * 代码编辑器 · 文件管理增量样式
+ * 仅在 EditorPage 中 import；基础布局仍在 settings.css。
+ * ============================================================ */
+
+/* ------------------------------------------------------------ 工具栏 */
+
+.editor-actions {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.editor-actions .tk-icon-btn.active {
+  color: var(--tk-accent);
+  background: rgba(var(--tk-accent-rgb), 0.16);
+  box-shadow: inset 0 0 0 1px rgba(var(--tk-accent-rgb), 0.32);
+}
+
+/* ------------------------------------------------------------ 文件列表 */
+
+.editor-files {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 4px;
+  overflow: hidden;
+  min-width: 0;
+}
+
+.editor-files-list {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+}
+
+.editor-file {
+  position: relative;
+  flex: none;
+}
+
+.editor-file-open {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 15px 0 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: inherit;
+}
+
+.editor-file-open:disabled {
+  cursor: default;
+}
+
+.editor-file-del {
+  position: absolute;
+  right: 2px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: grid;
+  place-items: center;
+  width: 17px;
+  height: 17px;
+  padding: 0;
+  border: 0;
+  border-radius: 5px;
+  background: rgba(255, 107, 129, 0.16);
+  color: #ffc0c8;
+  cursor: pointer;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s, background 0.15s, color 0.15s;
+}
+
+.editor-file:hover .editor-file-del,
+.editor-file:focus-within .editor-file-del {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.editor-file-del:hover {
+  background: rgba(255, 107, 129, 0.32);
+  color: #fff;
+}
+
+.editor-file-del:disabled {
+  opacity: 0.35;
+  pointer-events: none;
+}
+
+.editor-file:hover .editor-file-size,
+.editor-file:focus-within .editor-file-size {
+  opacity: 0;
+}
+
+.editor-file-size {
+  transition: opacity 0.15s;
+}
+
+/* ------------------------------------------------------------ 已删除文件 */
+
+.editor-deleted {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  margin-top: 4px;
+  padding-top: 4px;
+  border-top: 1px dashed rgba(150, 190, 255, 0.18);
+  max-height: 40%;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+.editor-deleted-head {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 4px 3px;
+  font-size: 9px;
+  letter-spacing: 0.2px;
+  color: var(--tk-text-3);
+  opacity: 0.85;
+}
+
+.editor-deleted-item {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 4px;
+  border-radius: 6px;
+  color: var(--tk-text-3);
+  font-size: 10px;
+  font-family: var(--tk-mono);
+  transition: background 0.15s, color 0.15s;
+}
+
+.editor-deleted-item:hover {
+  background: rgba(120, 160, 230, 0.08);
+  color: var(--tk-text-2);
+}
+
+.editor-deleted-name {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  opacity: 0.75;
+  text-decoration: line-through;
+  text-decoration-color: rgba(255, 107, 129, 0.45);
+}
+
+.editor-deleted-restore {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 17px;
+  height: 17px;
+  padding: 0;
+  border: 0;
+  border-radius: 5px;
+  background: rgba(var(--tk-accent-rgb), 0.16);
+  color: var(--tk-accent);
+  cursor: pointer;
+  opacity: 0.75;
+  transition: opacity 0.15s, background 0.15s;
+}
+
+.editor-deleted-restore:hover {
+  opacity: 1;
+  background: rgba(var(--tk-accent-rgb), 0.3);
+}
+
+.editor-deleted-restore:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+/* ------------------------------------------------------------ 可拖拽分隔线 */
+
+.editor-splitter {
+  flex: none;
+  position: relative;
+  width: 5px;
+  margin: 0 -2px;
+  align-self: stretch;
+  border-radius: 3px;
+  cursor: col-resize;
+  touch-action: none;
+  transition: background 0.15s;
+}
+
+.editor-splitter::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 18%;
+  bottom: 18%;
+  width: 1px;
+  transform: translateX(-50%);
+  background: rgba(150, 190, 255, 0.14);
+  transition: background 0.15s, top 0.15s, bottom 0.15s;
+}
+
+.editor-splitter:hover::after,
+.editor-splitter:active::after {
+  top: 6%;
+  bottom: 6%;
+  background: rgba(var(--tk-accent-rgb), 0.55);
+}
+
+.editor-resizing {
+  cursor: col-resize;
+  user-select: none;
+}
+
+.editor-resizing * {
+  cursor: col-resize !important;
+  user-select: none !important;
+}
+
+/* ------------------------------------------------------------ 全屏编辑 */
+
+.editor-shell.is-fullscreen .editor-body {
+  gap: 0;
+}
+
+.editor-shell.is-fullscreen .editor-main {
+  border-radius: 14px;
+  box-shadow: 0 18px 46px rgba(0, 0, 0, 0.35);
+}
+
+/* ------------------------------------------------------------ 新建文件弹层 */
+
+.editor-create-form {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.editor-create-label {
+  font-size: 10.5px;
+  color: var(--tk-text-3);
+  letter-spacing: 0.2px;
+}
+
+.editor-create-form .tk-input {
+  width: 100%;
+  font-family: var(--tk-mono);
+  font-size: 11.5px;
+}
+
+.editor-create-hint {
+  font-size: 9.5px;
+  line-height: 1.55;
+  color: var(--tk-text-3);
+  opacity: 0.85;
+  margin-bottom: 2px;
+}
+
+.editor-template-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 5px;
+}
+
+.editor-template {
+  height: 29px;
+  padding: 0 6px;
+  border-radius: 8px;
+  border: 1px solid var(--tk-border);
+  background: rgba(18, 30, 56, 0.5);
+  color: var(--tk-text-2);
+  font-size: 11px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.editor-template:hover {
+  background: rgba(120, 160, 230, 0.12);
+}
+
+.editor-template.active {
+  border-color: rgba(var(--tk-accent-rgb), 0.55);
+  background: rgba(var(--tk-accent-rgb), 0.18);
+  color: var(--tk-text);
+}
+
+.editor-template:disabled {
+  opacity: 0.5;
+  cursor: default;
+}

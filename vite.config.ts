@@ -1,4 +1,4 @@
-import { defineConfig } from 'vite';
+﻿import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
@@ -29,6 +29,7 @@ export default defineConfig({
         ball: resolve(rendererRoot, 'ball.html'),
         overlay: resolve(rendererRoot, 'overlay.html'),
         recorder: resolve(rendererRoot, 'recorder.html'),
+        settings: resolve(rendererRoot, 'settings.html'),
       },
     },
   },
@@ -37,3 +38,4 @@ export default defineConfig({
     strictPort: true,
   },
 });
+

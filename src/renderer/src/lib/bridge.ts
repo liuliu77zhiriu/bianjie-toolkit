@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
+﻿import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import type {
   AppInfo,
   CommandInfo,
   PluginRuntimeInfo,
   Settings,
   SettingsPatch,
+  WallpaperCurrent,
   TkEventMessage,
 } from '@shared/types';
 
@@ -272,4 +273,25 @@ export function useStableCallback<T extends (...args: never[]) => unknown>(fn: T
   const ref = useRef(fn);
   ref.current = fn;
   return useCallback(((...args: never[]) => ref.current(...args)) as T, []);
+}
+/** 当前壁纸（主进程解析 selector → tk://file URL）；随设置变化自动刷新。 */
+export function useWallpaper(): WallpaperCurrent | null {
+  const [wallpaper, setWallpaper] = useState<WallpaperCurrent | null>(null);
+  useEffect(() => {
+    let alive = true;
+    const load = () => {
+      invoke<WallpaperCurrent | null>('core', 'wallpapers.current')
+        .then((value) => {
+          if (alive) setWallpaper(value ?? null);
+        })
+        .catch(() => undefined);
+    };
+    load();
+    const off = on('settings:changed', load);
+    return () => {
+      alive = false;
+      off();
+    };
+  }, []);
+  return wallpaper;
 }

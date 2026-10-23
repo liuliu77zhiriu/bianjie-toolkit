@@ -2,7 +2,7 @@
 import fs from 'node:fs';
 import fsp from 'node:fs/promises';
 import path from 'node:path';
-import type { AppInfo, AppPaths, Settings, SettingsPatch } from '../../shared/types';
+import type { AppInfo, AppPaths, Settings, SettingsPatch, ThemeTokens } from '../../shared/types';
 import type { IpcHub } from './ipc';
 import type { Logger } from './logger';
 import type { SettingsService } from './settings';
@@ -10,6 +10,8 @@ import type { WindowManager } from './windows';
 import type { OverlayManager } from './overlay';
 import type { PluginHost } from './plugin-host';
 import type { ShortcutManager } from './shortcuts';
+import type { WallpaperService } from './wallpapers';
+import type { ThemeService } from './themes';
 import { ToolkitError } from './errors';
 
 export interface CoreServiceDeps {
@@ -21,6 +23,8 @@ export interface CoreServiceDeps {
   overlay: OverlayManager;
   plugins: PluginHost;
   shortcuts: ShortcutManager;
+  wallpapers: WallpaperService;
+  themes: ThemeService;
 }
 
 export class CoreService {
@@ -95,6 +99,7 @@ export class CoreService {
         recordings: settings.get().recorder.saveDir || paths.recordings,
         plugins: paths.plugins,
         overrides: paths.overrides,
+        wallpapers: path.join(paths.userData, 'wallpapers'),
         logs: paths.logs,
         backups: paths.backups,
         resources: paths.resourcesDir,
@@ -235,7 +240,89 @@ export class CoreService {
       return true;
     });
 
+    /* ---------------------------------------------------------- 个性化 */
+
+    ipc.handle('core', 'wallpapers.list', () => this.deps.wallpapers.list());
+    ipc.handle('core', 'wallpapers.current', () => this.deps.wallpapers.current());
+    ipc.handle('core', 'wallpapers.import', () => this.deps.wallpapers.importFromDialog());
+    ipc.handle('core', 'wallpapers.download', (args) => {
+      const request = args as { url?: string; name?: string };
+      if (!request?.url) throw new ToolkitError('BAD_ARGS', '缺少壁纸下载地址');
+      return this.deps.wallpapers.download(request.url, request.name);
+    });
+    ipc.handle('core', 'wallpapers.apply', (args) => {
+      const request = args as { selector?: string; opacity?: number };
+      return this.deps.wallpapers.apply(String(request?.selector ?? ''), request?.opacity);
+    });
+    ipc.handle('core', 'wallpapers.remove', (args) => {
+      const request = args as { selector?: string };
+      return this.deps.wallpapers.remove(String(request?.selector ?? ''));
+    });
+    ipc.handle('core', 'wallpapers.setDesktop', (args) => {
+      const request = args as { selector?: string };
+      return this.deps.wallpapers.setDesktop(String(request?.selector ?? ''));
+    });
+
+    ipc.handle('core', 'themes.list', () => this.deps.themes.list());
+    ipc.handle('core', 'themes.apply', (args) => {
+      const id = String((args as { id?: string })?.id ?? '');
+      const theme = this.deps.themes.get(id);
+      if (!theme) throw new ToolkitError('THEME_NOT_FOUND', `主题不存在：${id}`);
+      return this.deps.settings.patch({
+        appearance: {
+          accent: theme.tokens.accent,
+          panelOpacity: theme.tokens.panelOpacity,
+          blur: theme.tokens.blur,
+          animation: theme.tokens.animation,
+          wallpaper: theme.tokens.wallpaper,
+          wallpaperOpacity: theme.tokens.wallpaperOpacity,
+          ballEdgeHide: theme.tokens.ballEdgeHide,
+          showDock: theme.tokens.showDock,
+        },
+      });
+    });
+    ipc.handle('core', 'themes.save', (args) => {
+      const request = args as { name?: string; tokens?: ThemeTokens };
+      const name = String(request?.name ?? '').trim();
+      if (!name) throw new ToolkitError('BAD_ARGS', '缺少主题名称');
+      const tokens: ThemeTokens =
+        request?.tokens ?? {
+          accent: this.deps.settings.get().appearance.accent,
+          panelOpacity: this.deps.settings.get().appearance.panelOpacity,
+          blur: this.deps.settings.get().appearance.blur,
+          animation: this.deps.settings.get().appearance.animation,
+          wallpaper: this.deps.settings.get().appearance.wallpaper,
+          wallpaperOpacity: this.deps.settings.get().appearance.wallpaperOpacity,
+          ballEdgeHide: this.deps.settings.get().appearance.ballEdgeHide,
+          showDock: this.deps.settings.get().appearance.showDock,
+        };
+      return this.deps.themes.save(name, tokens);
+    });
+    ipc.handle('core', 'themes.delete', (args) => {
+      const id = String((args as { id?: string })?.id ?? '');
+      return this.deps.themes.delete(id);
+    });
+
+    /* ---------------------------------------------------------- 编辑器文件自由化 */
+
+    ipc.handle('core', 'plugins.createFile', (args) => {
+      const request = args as { id?: string; path?: string; content?: string };
+      return this.deps.plugins.createFile(String(request?.id ?? ''), String(request?.path ?? ''), request?.content);
+    });
+    ipc.handle('core', 'plugins.deleteFile', (args) => {
+      const request = args as { id?: string; path?: string };
+      return this.deps.plugins.deleteFile(String(request?.id ?? ''), String(request?.path ?? ''));
+    });
+    ipc.handle('core', 'plugins.restoreDeleted', (args) => {
+      const request = args as { id?: string; path?: string };
+      return this.deps.plugins.restoreDeletedFile(String(request?.id ?? ''), String(request?.path ?? ''));
+    });
+
     ipc.handle('core', 'overlay.pickRegion', () => this.deps.overlay.pickRegion());
   }
 }
+
+
+
+
 

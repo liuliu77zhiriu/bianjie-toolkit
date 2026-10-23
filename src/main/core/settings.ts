@@ -1,4 +1,4 @@
-﻿import { EventEmitter } from 'node:events';
+import { EventEmitter } from 'node:events';
 import path from 'node:path';
 import { DEFAULT_SETTINGS, SETTINGS_VERSION, ACCENT_PRESETS } from '../../shared/defaults';
 import type { Settings, SettingsPatch } from '../../shared/types';
@@ -99,6 +99,12 @@ export class SettingsService extends EventEmitter {
       ballEdgeHide: bool(appearance.ballEdgeHide, s.appearance.ballEdgeHide),
       alwaysOnTop: bool(appearance.alwaysOnTop, s.appearance.alwaysOnTop),
       showDock: bool(appearance.showDock, s.appearance.showDock),
+      wallpaper: (() => {
+        const value = str(appearance.wallpaper, s.appearance.wallpaper).trim();
+        if (value === '') return '';
+        return /^(builtin:[a-z0-9_-]{1,64}|user:[^\\/:*?"<>|]{1,128})$/.test(value) ? value : '';
+      })(),
+      wallpaperOpacity: num(appearance.wallpaperOpacity, 0.05, 0.8, s.appearance.wallpaperOpacity),
     });
 
     const shortcuts = raw.shortcuts ?? {};

@@ -1,0 +1,38 @@
+[
+  {
+    "id": "midnight",
+    "name": "午夜",
+    "file": "midnight.jpg",
+    "description": "深蓝黑底色上的微弱冷光与星尘，安静到几乎不打扰内容。"
+  },
+  {
+    "id": "ocean",
+    "name": "深海",
+    "file": "ocean.jpg",
+    "description": "深海青蓝的流动光带，像光从水面折射进暗处。"
+  },
+  {
+    "id": "aurora",
+    "name": "极光",
+    "file": "aurora.jpg",
+    "description": "紫蓝极光在极夜的深空里缓慢铺开。"
+  },
+  {
+    "id": "graphite",
+    "name": "石墨",
+    "file": "graphite.jpg",
+    "description": "中性石墨灰的柔和雾面，接近无彩色，克制而耐看。"
+  },
+  {
+    "id": "dusk",
+    "name": "暮色",
+    "file": "dusk.jpg",
+    "description": "橙紫暮光沉入深色地平线，暖调只留在画面下沿。"
+  },
+  {
+    "id": "ember",
+    "name": "余烬",
+    "file": "ember.jpg",
+    "description": "暗红余烬在近乎全黑的底上明灭，零星暖色光点。"
+  }
+]

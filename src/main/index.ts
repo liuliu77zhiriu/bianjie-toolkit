@@ -13,6 +13,9 @@ import { ShortcutManager } from './core/shortcuts';
 import { TrayManager } from './core/tray';
 import { CoreService } from './core/core-service';
 import { TkProtocol, registerScheme } from './core/protocol';
+import { SettingsWindowManager } from './core/settings-window';
+import { WallpaperService } from './core/wallpapers';
+import { ThemeService } from './core/themes';
 import { createMediaApi } from './core/media';
 
 const gotLock = app.requestSingleInstanceLock();
@@ -45,6 +48,9 @@ let shortcuts: ShortcutManager;
 let tray: TrayManager;
 let protocol: TkProtocol;
 let media: ReturnType<typeof createMediaApi>;
+let settingsWindow: SettingsWindowManager;
+let wallpapers: WallpaperService;
+let themes: ThemeService;
 let quitting = false;
 
 function notify(opts: { title: string; body?: string }) {
@@ -88,12 +94,13 @@ async function bootstrap() {
     logger,
     ipc,
     settings: settings.get(),
+    openSettingsWindow: (tab) => settingsWindow.open(tab),
     menuActions: {
       openPanel: () => windows.openPanel(),
       runCommand: (id) => {
         void plugins.runCommand(id).catch((err) => logger.warn('[menu] 命令失败', id, err));
       },
-      openSettings: () => windows.openPanel('settings'),
+      openSettings: () => settingsWindow.open('general'),
       toggleBall: (visible) => {
         windows.setBallVisible(visible);
         settings.patch({ general: { showBall: visible } });
@@ -101,6 +108,23 @@ async function bootstrap() {
       quit: () => app.quit(),
     },
   });
+
+  settingsWindow = new SettingsWindowManager({
+    paths: { preloadDir: pathsRef.preloadDir },
+    logger,
+    ipc,
+    getSettings: () => settings.get(),
+    getReferenceWindow: () => windows.panel ?? windows.ball,
+  });
+  settingsWindow.registerIpc();
+
+  wallpapers = new WallpaperService({
+    paths: pathsRef,
+    logger,
+    settings,
+    getParentWindow: () => settingsWindow.win ?? windows.panel ?? null,
+  });
+  themes = new ThemeService(pathsRef, logger);
 
   overlay = new OverlayManager({
     paths: pathsRef,
@@ -146,12 +170,13 @@ async function bootstrap() {
 
   shortcuts = new ShortcutManager({ settings, logger, plugins, windows });
 
-  new CoreService({ paths: pathsRef, logger, settings, ipc, windows, overlay, plugins, shortcuts }).register();
+  new CoreService({ paths: pathsRef, logger, settings, ipc, windows, overlay, plugins, shortcuts, wallpapers, themes }).register();
 
   settings.on('change', (next: ReturnType<SettingsService['get']>) => {
     try {
       windows.applyPanelSettings(next);
       windows.applyBallAppearance(next);
+      settingsWindow.applySettings(next);
       applyAutostart(next.general.launchAtLogin);
       shortcuts.apply(next);
       protocol.setAllowedRoots([
@@ -181,7 +206,7 @@ async function bootstrap() {
     getSettings: () => settings.get(),
     commands: () => plugins.listCommands(),
     togglePanel: () => windows.togglePanel(),
-    openSettings: () => windows.openPanel('settings'),
+    openSettings: () => settingsWindow.open('general'),
     runCommand: (id) => {
       void plugins.runCommand(id).catch((err) => logger.warn('[tray] 命令失败', id, err));
     },
@@ -218,6 +243,7 @@ async function bootstrap() {
         plugins,
         media,
         shortcuts,
+        settingsWindow,
       });
     } catch (err) {
       logger.error('[test] 冒烟测试异常', err);
@@ -283,6 +309,7 @@ app.on('before-quit', (event) => {
         new Promise((resolve) => setTimeout(resolve, 3000)),
       ]);
       tray?.destroy();
+      settingsWindow?.destroy();
       windows?.destroy();
       logger?.info('[main] 清理完成');
     } catch (err) {
@@ -320,6 +347,9 @@ process.on('exit', () => {
     /* ignore */
   }
 });
+
+
+
 
 
 

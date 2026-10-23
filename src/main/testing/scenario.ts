@@ -4,6 +4,7 @@
  */
 import path from 'node:path';
 import fs from 'node:fs';
+import http from 'node:http';
 import { BrowserWindow, screen } from 'electron';
 import type { AppPaths, MediaApi, PluginRuntimeInfo } from '../../shared/types';
 import type { IpcHub } from '../core/ipc';
@@ -13,6 +14,7 @@ import type { PluginHost } from '../core/plugin-host';
 import type { SettingsService } from '../core/settings';
 import type { ShortcutManager } from '../core/shortcuts';
 import type { WindowManager } from '../core/windows';
+import type { SettingsWindowManager } from '../core/settings-window';
 
 export interface SmokeEnv {
   app: typeof import('electron').app;
@@ -26,6 +28,7 @@ export interface SmokeEnv {
   plugins: PluginHost;
   media: MediaApi;
   shortcuts: ShortcutManager;
+  settingsWindow: SettingsWindowManager;
 }
 
 interface StepResult {
@@ -212,15 +215,179 @@ export async function runSmoke(env: SmokeEnv): Promise<void> {
     return `panel ${size.width}x${size.height}`;
   });
 
-  await run('设置页', async () => {
-    env.windows.openPanel('settings');
-    await wait(1200);
-    const size = await capturePanel('10-settings.png');
-    const hasTabs = (await env.windows.panel?.webContents.executeJavaScript(
-      `document.querySelectorAll('.settings-tab').length`
+  await run('独立设置窗口', async () => {
+    env.windows.openPanel();
+    await wait(700);
+    const clickedSettings = (await env.windows.panel?.webContents.executeJavaScript(
+      "(() => { const button = document.querySelector('.panel-header button[title=\"设置\"]'); button?.click(); return !!button; })()"
+    )) as boolean;
+    if (!clickedSettings) throw new Error('面板设置按钮未找到或未响应');
+    await wait(1700);
+    const win = env.settingsWindow.win;
+    if (!win || win.isDestroyed()) throw new Error('设置窗口未创建');
+    const shot = await win.webContents.capturePage();
+    fs.writeFileSync(path.join(outDir, '10-settings-window.png'), shot.toPNG());
+    const state = (await win.webContents.executeJavaScript(`(() => ({
+      nav: document.querySelectorAll('.settings-nav-item').length,
+      title: document.querySelector('.settings-page-title')?.textContent ?? '',
+      wallpaper: !!document.querySelector('.settings-window'),
+    }))()`)) as { nav: number; title: string; wallpaper: boolean };
+    if (state.nav !== 8) throw new Error(`设置导航数量异常：${state.nav}`);
+    if (!state.title) throw new Error('设置页标题未渲染');
+    const bounds = win.getBounds();
+    // 切到个性化页，验证独立窗口中的个性化 tab 与壁纸/主题区
+    env.settingsWindow.open('personalize');
+    await wait(900);
+    const personalize = (await win.webContents.executeJavaScript(`(() => ({
+      active: document.querySelector('.settings-nav-item.active')?.textContent?.trim() ?? '',
+      cards: document.querySelectorAll('.personalize-theme, .theme-preset-card, .settings-nav-item').length,
+    }))()`)) as { active: string; cards: number };
+    const personalizeShot = await win.webContents.capturePage();
+    fs.writeFileSync(path.join(outDir, '11-personalize.png'), personalizeShot.toPNG());
+    if (!personalize.active.includes('个性化')) throw new Error(`个性化 tab 未激活：${personalize.active}`);
+    const scrollTo = async (top: number) => {
+      await win.webContents.executeJavaScript(
+        `(() => { const el = document.querySelector('.settings-page-scroll'); if (el) el.scrollTop = ${top}; return true; })()`
+      );
+      await wait(420);
+    };
+    await scrollTo(760);
+    const wallpaperCards = (await win.webContents.executeJavaScript(
+      "document.querySelectorAll('.pz-wall-card').length"
     )) as number;
-    if (!hasTabs) throw new Error('设置页未渲染 tab');
-    return `${hasTabs} tabs · panel ${size.width}x${size.height}`;
+    if (wallpaperCards < 6) throw new Error(`壁纸卡片不足：${wallpaperCards}`);
+    const wallsShot = await win.webContents.capturePage();
+    fs.writeFileSync(path.join(outDir, '22-personalize-wallpapers.png'), wallsShot.toPNG());
+    await scrollTo(1780);
+    const designerShot = await win.webContents.capturePage();
+    fs.writeFileSync(path.join(outDir, '23-personalize-designer.png'), designerShot.toPNG());
+    // 窗口可缩放：放大后内容区应自适应
+    win.setSize(1080, 780);
+    await wait(500);
+    const resizedShot = await win.webContents.capturePage();
+    fs.writeFileSync(path.join(outDir, '24-settings-resized.png'), resizedShot.toPNG());
+    const resizedSize = win.getSize();
+    win.setSize(920, 720);
+    await wait(300);
+    // 扩展 tab → 点击第一个「编辑」进入编辑器，验证独立设置窗口中的编辑器布局
+    env.settingsWindow.open('plugins');
+    await wait(900);
+    const clicked = (await win.webContents.executeJavaScript(
+      "(() => { const button = Array.from(document.querySelectorAll('button')).find((item) => item.textContent.trim() === '编辑'); button?.click(); return !!button; })()"
+    )) as boolean;
+    if (!clicked) throw new Error('未找到插件「编辑」按钮');
+    await wait(1600);
+    const editorState = (await win.webContents.executeJavaScript(`(() => ({
+      shell: !!document.querySelector('.editor-shell'),
+      buttons: Array.from(document.querySelectorAll('.editor-toolbar button')).map((item) => item.textContent.trim()).join('|'),
+    }))()`)) as { shell: boolean; buttons: string };
+    if (!editorState.shell) throw new Error('编辑器视图未渲染');
+    const editorShot = await win.webContents.capturePage();
+    fs.writeFileSync(path.join(outDir, '12-editor-window.png'), editorShot.toPNG());
+    // 打开「新建文件」弹层，验证 UI 可用
+    const openedCreate = (await win.webContents.executeJavaScript(
+      "(() => { const button = Array.from(document.querySelectorAll('button')).find((item) => item.textContent.trim() === '新建文件'); button?.click(); return !!button; })()"
+    )) as boolean;
+    if (!openedCreate) throw new Error('未找到新建文件按钮');
+    await wait(500);
+    const createModal = (await win.webContents.executeJavaScript(`(() => ({
+      modal: !!document.querySelector('.modal-card'),
+      input: document.querySelector('.modal-card input')?.getAttribute('placeholder') ?? '',
+    }))()`)) as { modal: boolean; input: string };
+    if (!createModal.modal) throw new Error('新建文件弹层未出现');
+    const createShot = await win.webContents.capturePage();
+    fs.writeFileSync(path.join(outDir, '13-editor-newfile.png'), createShot.toPNG());
+    // Esc 关闭弹层
+    win.webContents.sendInputEvent({ type: 'keyDown', keyCode: 'Escape' });
+    win.webContents.sendInputEvent({ type: 'keyUp', keyCode: 'Escape' });
+    await wait(250);
+    env.settingsWindow.close();
+    await wait(300);
+    return `${state.nav} 项导航 · ${bounds.width}x${bounds.height} · 个性化卡片 ${personalize.cards} · 编辑器[${editorState.buttons}] · 新建弹层[${createModal.input}]`;
+  });
+
+  await run('个性化：主题 / 壁纸 / 自定义主题', async () => {
+    const call = async <T,>(method: string, args: unknown): Promise<T> => {
+      const result = await env.ipc.call('core', method, args, { kind: 'panel', webContentsId: -1 });
+      if (!result.ok) throw new Error(result.error?.message ?? `${method} 调用失败`);
+      return result.data as T;
+    };
+    const before = env.settings.get().appearance;
+    const applied = await call<{ appearance: { accent: string; wallpaper: string } }>('themes.apply', {
+      id: 'deep-sea',
+    });
+    if (applied.appearance.wallpaper !== 'builtin:ocean') throw new Error('主题未写入壁纸选择器');
+    await wait(300);
+    const current = await call<{ url?: string; selector?: string } | null>('wallpapers.current', {});
+    if (!current?.url?.startsWith('tk://file/')) throw new Error('壁纸 URL 未解析');
+    const list = await call<Array<{ source: string }>>('wallpapers.list', {});
+    if (list.filter((item) => item.source === 'builtin').length < 6) throw new Error('内置壁纸不足 6 张');
+    // 真实 HTTP 下载链路（本地临时服务器，避免外网依赖）
+    const server = http.createServer((_req, res) => {
+      const file = path.join(env.paths.resourcesDir, 'wallpapers', 'ocean.jpg');
+      const data = fs.readFileSync(file);
+      res.writeHead(200, { 'content-type': 'image/jpeg', 'content-length': String(data.length) });
+      res.end(data);
+    });
+    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', () => resolve()));
+    let downloadedInfo = '';
+    try {
+      const address = server.address();
+      const port = typeof address === 'object' && address ? address.port : 0;
+      const downloaded = await call<{ id: string; selector: string; source: string }>('wallpapers.download', {
+        url: `http://127.0.0.1:${port}/ocean.jpg`,
+        name: '冒烟下载',
+      });
+      if (downloaded.source !== 'user') throw new Error('下载壁纸未进入用户目录');
+      await call('wallpapers.apply', { selector: downloaded.selector, opacity: 0.36 });
+      const appliedCurrent = await call<{ selector?: string } | null>('wallpapers.current', {});
+      if (appliedCurrent?.selector !== downloaded.selector) throw new Error('下载壁纸应用失败');
+      const afterRemove = await call<Array<{ selector: string }>>('wallpapers.remove', {
+        selector: downloaded.selector,
+      });
+      if (afterRemove.some((item) => item.selector === downloaded.selector)) throw new Error('下载壁纸删除失败');
+      downloadedInfo = `下载 ${downloaded.selector} → 应用 → 删除`;
+    } finally {
+      await new Promise<void>((resolve) => server.close(() => resolve()));
+    }
+    // 回到内置深海壁纸，便于后续截图
+    await call('wallpapers.apply', { selector: 'builtin:ocean', opacity: 0.42 });
+    env.windows.openPanel();
+    await wait(700);
+    const wallpaperLayer = (await env.windows.panel?.webContents.executeJavaScript(
+      "!!document.querySelector('.panel-wallpaper')"
+    )) as boolean;
+    if (!wallpaperLayer) throw new Error('主面板未渲染壁纸层');
+    const themeShot = await env.windows.panel?.webContents.capturePage();
+    if (themeShot) fs.writeFileSync(path.join(outDir, '20-panel-wallpaper.png'), themeShot.toPNG());
+    env.settingsWindow.open('personalize');
+    await wait(900);
+    const settingsWin = env.settingsWindow.win;
+    const appliedShot = await settingsWin?.webContents.capturePage();
+    if (appliedShot) fs.writeFileSync(path.join(outDir, '21-personalize-applied.png'), appliedShot.toPNG());
+    env.settingsWindow.close();
+    // 自定义主题：保存 → 出现在列表 → 删除
+    const saved = await call<Array<{ id: string; name: string; builtin: boolean }>>('themes.save', {
+      name: '冒烟主题',
+      tokens: {
+        accent: '#FFB454',
+        panelOpacity: 0.82,
+        blur: true,
+        animation: 'full',
+        wallpaper: 'builtin:dusk',
+        wallpaperOpacity: 0.4,
+        ballEdgeHide: true,
+        showDock: true,
+      },
+    });
+    const custom = saved.find((theme) => theme.name === '冒烟主题');
+    if (!custom || custom.builtin) throw new Error('自定义主题未保存');
+    const afterDelete = await call<Array<{ id: string }>>('themes.delete', { id: custom.id });
+    if (afterDelete.some((theme) => theme.id === custom.id)) throw new Error('自定义主题未删除');
+    env.settings.patch({ appearance: before });
+    await wait(400);
+    env.windows.hidePanelImmediate();
+    return `主题 → ${applied.appearance.accent} · 壁纸 ${current.selector} · 内置 ${list.length} 张 · ${downloadedInfo} · 自定义主题增删`;
   });
 
   await run('悬浮球点击打开面板', async () => {
@@ -422,6 +589,24 @@ export async function runSmoke(env: SmokeEnv): Promise<void> {
     return '迷你窗创建 / 桌面显示 / 隐藏 / 重置';
   });
 
+  await run('编辑器文件自由化', async () => {
+    await env.plugins.createPlugin({ id: 'file-demo', name: '文件演示' });
+    const created = await env.plugins.createFile('file-demo', 'lib/extra.js', 'export const extra = 1;\n');
+    if (!created.ok) throw new Error(created.error?.message || '新建文件失败');
+    const withFile = await env.plugins.files('file-demo');
+    if (!withFile.files.some((file) => file.path === 'lib/extra.js')) throw new Error('新建文件未出现在列表');
+    const removed = await env.plugins.deleteFile('file-demo', 'main.js');
+    if (!removed.ok) throw new Error(removed.error?.message || '删除文件失败');
+    const afterDelete = await env.plugins.files('file-demo');
+    if (!afterDelete.deletedFiles?.includes('main.js')) throw new Error('删除基座文件后未产生墓碑');
+    const restored = await env.plugins.restoreDeletedFile('file-demo', 'main.js');
+    if (!restored.ok) throw new Error(restored.error?.message || '恢复文件失败');
+    const afterRestore = await env.plugins.files('file-demo');
+    if (afterRestore.deletedFiles?.includes('main.js')) throw new Error('恢复后墓碑未清理');
+    await env.plugins.deletePlugin('file-demo');
+    return '新建 lib/extra.js · 删除 main.js 墓碑 · 恢复成功';
+  });
+
   await run('插件编辑 + 热重载', async () => {
     await env.plugins.createPlugin({ id: 'smoke-demo', name: '冒烟示例' });
     const write = await env.plugins.writeFile(
@@ -454,6 +639,8 @@ export async function runSmoke(env: SmokeEnv): Promise<void> {
   }
   if (failed.length) env.logger.warn(`[test] 失败 ${failed.length} 项`);
 }
+
+
 
 
 

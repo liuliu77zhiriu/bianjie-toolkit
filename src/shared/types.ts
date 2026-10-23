@@ -64,6 +64,10 @@ export interface Settings {
     ballEdgeHide: boolean;
     alwaysOnTop: boolean;
     showDock: boolean;
+    /** 壁纸选择器：'' | 'builtin:<id>' | 'user:<filename>' */
+    wallpaper: string;
+    /** 面板内壁纸可见度 0.05 ~ 0.8 */
+    wallpaperOpacity: number;
   };
   shortcuts: {
     togglePanel: string;
@@ -102,6 +106,50 @@ export type SettingsSection = keyof Omit<Settings, 'version'>;
 export type SettingsPatch = {
   [K in SettingsSection]?: Partial<Settings[K]>;
 };
+
+/* ------------------------------------------------------------------ 个性化 */
+
+export interface WallpaperItem {
+  /** 唯一 id：内置为 manifest id，用户为文件名 */
+  id: string;
+  name: string;
+  /** 写入设置的选择器：builtin:<id> / user:<filename> */
+  selector: string;
+  source: 'builtin' | 'user';
+  /** tk://file/... 可直接给 img / CSS 使用 */
+  url: string;
+  /** 磁盘绝对路径（仅主进程语义） */
+  file: string;
+  width?: number;
+  height?: number;
+  sizeBytes?: number;
+}
+
+export interface WallpaperCurrent {
+  selector: string;
+  url: string;
+  opacity: number;
+  name: string;
+}
+
+export interface ThemeTokens {
+  accent: string;
+  panelOpacity: number;
+  blur: boolean;
+  animation: AnimationLevel;
+  wallpaper: string;
+  wallpaperOpacity: number;
+  ballEdgeHide: boolean;
+  showDock: boolean;
+}
+
+export interface ThemePreset {
+  id: string;
+  name: string;
+  description?: string;
+  builtin: boolean;
+  tokens: ThemeTokens;
+}
 
 /* ------------------------------------------------------------------ 插件 */
 
@@ -159,6 +207,8 @@ export interface PluginFilesPayload {
   id: string;
   manifest: PluginManifest;
   files: PluginFileEntry[];
+  /** 被用户删除（墓碑标记）的基座文件，可恢复 */
+  deletedFiles?: string[];
   baseDir: string;
   overrideDir: string;
   customized: boolean;
@@ -383,6 +433,12 @@ export interface TkBridge {
     call<T = unknown>(pluginId: string, method: string, args?: unknown): Promise<T>;
     send(pluginId: string, topic: string, payload?: unknown): void;
   };
+  /** 仅设置窗口 preload 提供 */
+  settingsWindow?: {
+    ready(): void;
+    close(): void;
+    minimize(): void;
+  };
 }
 
 declare global {
@@ -390,4 +446,5 @@ declare global {
     tk: TkBridge;
   }
 }
+
 

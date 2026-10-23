@@ -52,9 +52,14 @@ export function HomePage({ plugins, commands, onOpenTool, onOpenSettings, onQuic
 
       <div className="section-head">
         <span className="section-title">全部工具</span>
-        <button className="section-more" onClick={() => onOpenSettings('plugins')}>
-          管理插件
-        </button>
+        <span className="section-more-group">
+          <button className="section-more" onClick={() => onOpenSettings('personalize')}>
+            个性化
+          </button>
+          <button className="section-more" onClick={() => onOpenSettings('plugins')}>
+            管理插件
+          </button>
+        </span>
       </div>
 
       <div className="tool-grid">

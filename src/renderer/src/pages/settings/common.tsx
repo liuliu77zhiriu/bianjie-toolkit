@@ -406,8 +406,9 @@ export function Modal({
     return () => window.removeEventListener('keydown', onKeyDown, true);
   }, [onClose]);
 
-  // 挂到 .panel 内以继承用户强调色变量，同时脱离页面滚动容器
-  const portalRoot = document.querySelector('.panel') ?? document.body;
+  // 优先挂到设置窗口/面板内，继承当前窗口的强调色变量
+  const portalRoot =
+    document.querySelector('.settings-window') ?? document.querySelector('.panel') ?? document.body;
   return createPortal(
     <div
       className="modal-backdrop"
@@ -563,3 +564,4 @@ export function SaveDirRow({
     </Row>
   );
 }
+

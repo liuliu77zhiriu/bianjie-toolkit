@@ -304,6 +304,12 @@ body {
   color: var(--tk-text-3);
 }
 
+.section-more-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
 .section-more {
   font-size: 11px;
   color: var(--tk-text-3);

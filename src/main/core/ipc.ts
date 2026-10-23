@@ -1,4 +1,4 @@
-import { ipcMain, type WebContents } from 'electron';
+﻿import { ipcMain, type WebContents } from 'electron';
 import { IPC } from '../../shared/defaults';
 import type { CallResult } from '../../shared/types';
 import { toTkError } from './errors';
@@ -6,7 +6,7 @@ import type { Logger } from './logger';
 
 export type Handler = (args: unknown, meta: ClientMeta) => unknown | Promise<unknown>;
 
-export type ClientKind = 'panel' | 'ball' | 'plugin-window' | 'overlay';
+export type ClientKind = 'panel' | 'ball' | 'plugin-window' | 'overlay' | 'settings';
 
 export interface ClientMeta {
   kind: ClientKind;
@@ -121,3 +121,4 @@ export class IpcHub {
     this.clients.clear();
   }
 }
+

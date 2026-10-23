@@ -1,4 +1,4 @@
-﻿import { BrowserWindow, app, clipboard, dialog, ipcMain, nativeImage, Notification, shell, screen, desktopCapturer } from 'electron';
+import { BrowserWindow, app, clipboard, dialog, ipcMain, nativeImage, Notification, shell, screen, desktopCapturer } from 'electron';
 import fs from 'node:fs';
 import fsp from 'node:fs/promises';
 import path from 'node:path';
@@ -27,8 +27,113 @@ import { JsonStore } from './store';
 import { ToolkitError } from './errors';
 
 const ID_RE = /^[a-z][a-z0-9-]{1,31}$/;
-const TEXT_EXT = new Set(['.js', '.mjs', '.cjs', '.json', '.html', '.htm', '.css', '.svg', '.txt', '.md']);
+const TEXT_EXT = new Set([
+  '.js',
+  '.mjs',
+  '.cjs',
+  '.jsx',
+  '.ts',
+  '.tsx',
+  '.json',
+  '.html',
+  '.htm',
+  '.css',
+  '.svg',
+  '.txt',
+  '.md',
+  '.py',
+  '.yml',
+  '.yaml',
+  '.xml',
+  '.toml',
+  '.ini',
+  '.cfg',
+  '.conf',
+  '.sh',
+  '.bat',
+  '.cmd',
+  '.ps1',
+  '.sql',
+  '.csv',
+  '.log',
+]);
 const MAX_EDIT_BYTES = 2 * 1024 * 1024;
+/** 覆盖层目录下的墓碑清单：记录被用户删除的内置/基座文件（相对路径数组）。 */
+const TOMBSTONE_FILE = '.deleted.json';
+const RESERVED_SEGMENT_RE = /^(con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\..*)?$/i;
+const WINDOWS_FORBIDDEN_RE = /[<>:"|?*\u0000-\u001f\u007f]/;
+
+/** 统一相对路径：去首尾斜杠、反斜杠转正斜杠。 */
+function normalizeRelPath(raw: unknown): string {
+  return String(raw ?? '')
+    .trim()
+    .replace(/\\/g, '/')
+    .replace(/^\/+/, '')
+    .replace(/\/+$/, '');
+}
+
+/** 校验“新建文件”路径：允许子目录与任意可编辑文本扩展名，拒绝 .. / 非法字符 / Windows 保留名。 */
+function assertCreatableRelPath(raw: string): string {
+  const rel = normalizeRelPath(raw);
+  if (!rel) throw new ToolkitError('BAD_PATH', '请输入文件名');
+  if (rel.length > 240) throw new ToolkitError('BAD_PATH', '文件路径过长（最多 240 个字符）');
+  if (WINDOWS_FORBIDDEN_RE.test(rel)) throw new ToolkitError('BAD_PATH', '文件路径不能包含 < > : " | ? * 等字符');
+  if (/^[a-zA-Z]:/.test(rel)) throw new ToolkitError('BAD_PATH', '请使用相对插件目录的路径，例如 lib/helpers.js');
+  if (rel.includes('..')) throw new ToolkitError('BAD_PATH', '文件路径不能包含 ..');
+  const segments = rel.split('/');
+  for (const segment of segments) {
+    if (!segment || segment === '.' || segment === '..') {
+      throw new ToolkitError('BAD_PATH', '文件路径不能包含空目录名或 ..');
+    }
+    if (segment.length > 80) throw new ToolkitError('BAD_PATH', '目录或文件名过长（单个最多 80 个字符）');
+    if (segment.startsWith('.')) throw new ToolkitError('BAD_PATH', '文件名不能以 . 开头');
+    if (/[. ]$/.test(segment)) throw new ToolkitError('BAD_PATH', '目录或文件名不能以空格或 . 结尾');
+    if (RESERVED_SEGMENT_RE.test(segment)) throw new ToolkitError('BAD_PATH', `不能使用系统保留名称：${segment}`);
+  }
+  const base = segments[segments.length - 1];
+  const ext = path.extname(base).toLowerCase();
+  if (!ext) throw new ToolkitError('BAD_PATH', '文件名需要包含扩展名，例如 helpers.js');
+  if (!/^\.[a-z0-9]{1,12}$/i.test(ext)) throw new ToolkitError('BAD_PATH', '扩展名只能由字母或数字组成（最长 12 位）');
+  return segments.join('/');
+}
+
+/** 新建文件时的初始内容：按扩展名给出最小可用模板，未知扩展名保持空文件。 */
+function textTemplateFor(rel: string): string {
+  const ext = path.extname(rel).toLowerCase();
+  const base = path.basename(rel);
+  switch (ext) {
+    case '.js':
+    case '.mjs':
+    case '.cjs':
+      return `/** ${base} */\n`;
+    case '.jsx':
+    case '.ts':
+    case '.tsx':
+      return `/** ${base} */\n\n`;
+    case '.html':
+    case '.htm':
+      return `<!doctype html>\n<html lang="zh-CN">\n<head>\n<meta charset="utf-8" />\n<title>${base.replace(/\.html?$/i, '')}</title>\n</head>\n<body>\n\n</body>\n</html>\n`;
+    case '.css':
+      return `/* ${base} */\n`;
+    case '.json':
+      return '{}\n';
+    case '.md':
+      return `# ${base.replace(/\.md$/i, '')}\n`;
+    default:
+      return '';
+  }
+}
+
+/** 文件语言（供前端选择高亮/标签）。 */
+function languageOfExt(ext: string): PluginFileEntry['language'] {
+  if (ext === '.js' || ext === '.mjs' || ext === '.cjs' || ext === '.jsx' || ext === '.ts' || ext === '.tsx') {
+    return 'javascript';
+  }
+  if (ext === '.json') return 'json';
+  if (ext === '.html' || ext === '.htm') return 'html';
+  if (ext === '.css') return 'css';
+  return 'text';
+}
 
 interface CommandEntry {
   def: PluginCommandDef;
@@ -81,6 +186,8 @@ interface PluginRecord {
   overrideDir: string;
   enabled: boolean;
   loaded: boolean;
+  /** plugin.json 缺失/无效（例如被用户以墓碑删除）：保留记录以便在编辑器中恢复，但不加载 */
+  manifestMissing?: boolean;
   error?: string;
   module?: { activate?: (ctx: PluginContext) => unknown; deactivate?: () => unknown };
   cleanup: Array<() => void>;
@@ -192,6 +299,30 @@ export class PluginHost {
         const baseDir = path.join(root, entry.name);
         const manifest = await this.readManifest(baseDir, entry.name);
         if (!manifest) {
+          // 清单被用户以墓碑删除时，保留一条错误记录，避免插件从列表消失后无法恢复。
+          if (ID_RE.test(entry.name) && this.isTombstoned(entry.name, 'plugin.json')) {
+            const fallback = this.normalizeManifest({ id: entry.name, name: entry.name }, entry.name);
+            if (fallback) {
+              found.set(fallback.id, {
+                id: fallback.id,
+                manifest: fallback,
+                source,
+                baseDir,
+                overrideDir: path.join(paths.overrides, fallback.id),
+                enabled: !disabled.has(fallback.id),
+                loaded: false,
+                manifestMissing: true,
+                error: '插件清单 plugin.json 已被删除，可在代码编辑器的“已删除文件”中恢复',
+                cleanup: [],
+                ipcHandlers: new Map(),
+                eventHandlers: new Map(),
+                commands: new Map(),
+                windows: new Map(),
+              });
+              logger.warn(`[plugins] 插件清单被墓碑删除，保留待恢复记录: ${baseDir}`);
+              continue;
+            }
+          }
           logger.warn(`[plugins] 跳过无效插件目录: ${baseDir}`);
           continue;
         }
@@ -231,6 +362,8 @@ export class PluginHost {
   }
 
   private async readManifest(dir: string, id?: string): Promise<PluginManifest | null> {
+    // 清单被墓碑删除时视为无效（不绕过墓碑），插件会进入错误态并可在编辑器中恢复。
+    if (id && this.isTombstoned(id, 'plugin.json')) return null;
     const candidates: string[] = [];
     if (id) candidates.push(path.join(this.deps.paths.overrides, id, 'plugin.json'));
     candidates.push(path.join(dir, 'plugin.json'));
@@ -272,6 +405,11 @@ export class PluginHost {
   private async activate(record: PluginRecord) {
     if (record.loaded) return;
     if (record.enabled === false) return;
+    // 清单被墓碑删除 / 无效时不加载，但保留错误态与恢复入口
+    if (record.manifestMissing) {
+      record.loaded = false;
+      return;
+    }
     try {
       const entryRel = record.manifest.entry || 'main.js';
       const entryFile = this.resolveFile(record.id, entryRel);
@@ -814,6 +952,7 @@ export class PluginHost {
         return;
       }
       for (const entry of entries) {
+        if (entry.name === TOMBSTONE_FILE) continue;
         const rel = prefix ? `${prefix}/${entry.name}` : entry.name;
         if (entry.isDirectory()) walk(path.join(dir, entry.name), rel);
         else result.push(rel);
@@ -823,11 +962,104 @@ export class PluginHost {
     return result.sort();
   }
 
+  /* ---------------------------------------------------------------- 墓碑（删除即隐藏） */
+
+  private tombstoneFile(id: string): string {
+    return path.join(this.deps.paths.overrides, id, TOMBSTONE_FILE);
+  }
+
+  /** 读取墓碑列表；不存在或损坏时返回空数组（不影响插件加载）。 */
+  private readTombstones(id: string): string[] {
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(fs.readFileSync(this.tombstoneFile(id), 'utf8'));
+    } catch {
+      return [];
+    }
+    if (!Array.isArray(parsed)) return [];
+    const unique = new Set<string>();
+    for (const item of parsed) {
+      if (typeof item !== 'string') continue;
+      const rel = normalizeRelPath(item);
+      if (!rel || rel.includes('..')) continue;
+      if (!rel.split('/').every((segment) => !!segment && segment !== '.' && segment !== '..')) continue;
+      unique.add(rel);
+    }
+    return Array.from(unique).sort();
+  }
+
+  private isTombstoned(id: string, rel: string): boolean {
+    const target = normalizeRelPath(rel);
+    if (!target) return false;
+    return this.readTombstones(id).includes(target);
+  }
+
+  /** 原子写入墓碑清单；列表为空时直接删除文件，避免覆盖层里留下无意义空清单。 */
+  private async writeTombstones(id: string, list: string[]): Promise<void> {
+    const target = this.tombstoneFile(id);
+    const unique = Array.from(new Set(list.map(normalizeRelPath).filter(Boolean))).sort();
+    if (!unique.length) {
+      await fsp.rm(target, { force: true });
+      return;
+    }
+    await fsp.mkdir(path.dirname(target), { recursive: true });
+    const tmp = `${target}.tmp-${process.pid}`;
+    await fsp.writeFile(tmp, `${JSON.stringify(unique, null, 2)}\n`, 'utf8');
+    await fsp.rename(tmp, target);
+  }
+
+  private async addTombstone(id: string, rel: string): Promise<void> {
+    const target = normalizeRelPath(rel);
+    if (!target) return;
+    const list = this.readTombstones(id);
+    if (list.includes(target)) return;
+    await this.writeTombstones(id, [...list, target]);
+  }
+
+  /** 移除墓碑；返回是否真的移除了。 */
+  private async removeTombstone(id: string, rel: string): Promise<boolean> {
+    const target = normalizeRelPath(rel);
+    if (!target) return false;
+    const list = this.readTombstones(id);
+    if (!list.includes(target)) return false;
+    await this.writeTombstones(
+      id,
+      list.filter((item) => item !== target)
+    );
+    return true;
+  }
+
+  /** 删除覆盖层文件后清理变空的父目录（不会删除覆盖层根目录）。 */
+  private async pruneOverrideDirs(dir: string, stopAt: string): Promise<void> {
+    let current = path.resolve(dir);
+    const stop = path.resolve(stopAt);
+    while (current !== stop && current.startsWith(`${stop}${path.sep}`)) {
+      try {
+        if (fs.readdirSync(current).length > 0) return;
+        await fsp.rmdir(current);
+      } catch {
+        return;
+      }
+      current = path.dirname(current);
+    }
+  }
+
+  /** 原子写入覆盖层文件（临时文件 + rename）。 */
+  private async writeOverrideFile(record: PluginRecord, rel: string, content: string): Promise<void> {
+    const target = path.join(record.overrideDir, rel);
+    await fsp.mkdir(path.dirname(target), { recursive: true });
+    const tmp = `${target}.tmp-${process.pid}`;
+    await fsp.writeFile(tmp, content, 'utf8');
+    await fsp.rename(tmp, target);
+  }
+
   resolveFile(id: string, relativePath: string): string | null {
     const record = this.records.get(id);
     if (!record) return null;
     const clean = relativePath.replace(/^\/+/, '').replace(/\\/g, '/');
     if (!clean || clean.includes('..')) return null;
+    // 墓碑优先：被删除的文件对插件加载 / UI 资源 / 协议请求一律不可见。
+    if (this.isTombstoned(record.id, clean)) return null;
     const candidates = [path.join(record.overrideDir, clean), path.join(record.baseDir, clean)];
     for (const candidate of candidates) {
       try {
@@ -868,9 +1100,19 @@ export class PluginHost {
     const record = this.records.get(String(id));
     if (!record) throw new ToolkitError('PLUGIN_NOT_FOUND', `插件不存在：${id}`);
     await this.deactivate(record);
-    // 重新读取 manifest（可能被用户编辑）
+    // 重新读取 manifest（可能被用户编辑；被墓碑删除时视为缺失）
     const manifest = await this.readManifest(record.baseDir, record.id);
-    if (manifest) record.manifest = manifest;
+    if (!manifest) {
+      record.manifestMissing = true;
+      record.loaded = false;
+      record.error =
+        '插件清单 plugin.json 缺失或无效（可能已被删除），可在代码编辑器的“已删除文件”中恢复';
+      this.emitPluginsChanged();
+      this.deps.ipc.broadcast('plugin:reloaded', { pluginId: record.id });
+      return { ok: false, error: { code: 'PLUGIN_MANIFEST_MISSING', message: record.error } };
+    }
+    record.manifest = manifest;
+    record.manifestMissing = false;
     if (record.enabled) await this.activate(record);
     this.emitPluginsChanged();
     this.deps.ipc.broadcast('plugin:reloaded', { pluginId: record.id });
@@ -880,6 +1122,16 @@ export class PluginHost {
   async files(id: string): Promise<PluginFilesPayload> {
     const record = this.records.get(String(id));
     if (!record) throw new ToolkitError('PLUGIN_NOT_FOUND', `插件不存在：${id}`);
+    const tombstones = new Set(this.readTombstones(record.id));
+    // 只把“基座文件确实还存在”的墓碑列为可恢复项，过滤历史遗留的失效记录
+    const deletedFiles: string[] = [];
+    for (const rel of tombstones) {
+      try {
+        if (fs.statSync(path.join(record.baseDir, rel)).isFile()) deletedFiles.push(rel);
+      } catch {
+        /* 基座已不存在：失效墓碑，忽略 */
+      }
+    }
     const files = new Map<string, PluginFileEntry>();
     const collect = (dir: string, prefix = '') => {
       let entries: fs.Dirent[];
@@ -894,6 +1146,7 @@ export class PluginHost {
         if (entry.isDirectory()) {
           collect(path.join(dir, entry.name), rel);
         } else {
+          if (tombstones.has(rel)) continue;
           const ext = path.extname(entry.name).toLowerCase();
           const stat = fs.statSync(path.join(dir, entry.name));
           files.set(rel, {
@@ -901,36 +1154,41 @@ export class PluginHost {
             size: stat.size,
             overridden: fs.existsSync(path.join(record.overrideDir, rel)),
             editable: TEXT_EXT.has(ext) && stat.size <= MAX_EDIT_BYTES,
-            language: (() => {
-              if (ext === '.js' || ext === '.mjs' || ext === '.cjs') return 'javascript';
-              if (ext === '.json') return 'json';
-              if (ext === '.html' || ext === '.htm') return 'html';
-              if (ext === '.css') return 'css';
-              return 'text';
-            })(),
+            language: languageOfExt(ext),
           });
         }
       }
     };
     collect(record.baseDir);
-    // 只存在于覆盖层的文件
+    // 只存在于覆盖层的文件（用户在编辑器里新建 / 覆盖后基座已不存在的文件）
     for (const rel of this.listOverrides(record.id)) {
+      if (tombstones.has(rel)) continue;
       if (files.has(rel)) continue;
       const full = path.join(record.overrideDir, rel);
-      const stat = fs.statSync(full);
+      const fullStat = (() => {
+        try {
+          return fs.statSync(full);
+        } catch {
+          return null;
+        }
+      })();
+      if (!fullStat) continue;
       const ext = path.extname(rel).toLowerCase();
+      const baseExists = fs.existsSync(path.join(record.baseDir, rel));
       files.set(rel, {
         path: rel,
-        size: stat.size,
+        size: fullStat.size,
         overridden: true,
-        editable: TEXT_EXT.has(ext) && stat.size <= MAX_EDIT_BYTES,
-        language: ext === '.js' ? 'javascript' : ext === '.json' ? 'json' : ext === '.html' ? 'html' : ext === '.css' ? 'css' : 'text',
+        // 覆盖层文件由编辑器写入，必然是文本；基座同名文件若扩展名未知则保守地只读
+        editable: (TEXT_EXT.has(ext) || !baseExists) && fullStat.size <= MAX_EDIT_BYTES,
+        language: languageOfExt(ext),
       });
     }
     return {
       id: record.id,
       manifest: record.manifest,
       files: Array.from(files.values()).sort((a, b) => a.path.localeCompare(b.path)),
+      deletedFiles,
       baseDir: record.baseDir,
       overrideDir: record.overrideDir,
       customized: this.hasOverride(record.id),
@@ -940,7 +1198,11 @@ export class PluginHost {
   async readFile(id: string, rel: string): Promise<{ content: string; overridden: boolean; baseContent?: string }> {
     const record = this.records.get(String(id));
     if (!record) throw new ToolkitError('PLUGIN_NOT_FOUND', `插件不存在：${id}`);
-    const safeRel = String(rel || '').replace(/^\/+/, '');
+    const safeRel = normalizeRelPath(rel);
+    if (!safeRel || safeRel.includes('..')) throw new ToolkitError('BAD_PATH', '非法文件路径');
+    if (this.isTombstoned(record.id, safeRel)) {
+      throw new ToolkitError('FILE_DELETED', `文件已被删除：${safeRel}（可在“已删除文件”中恢复）`);
+    }
     const overridePath = path.join(record.overrideDir, safeRel);
     const basePath = path.join(record.baseDir, safeRel);
     const read = async (file: string): Promise<string | null> => {
@@ -970,12 +1232,94 @@ export class PluginHost {
       return { ok: false, error: { code: 'SYNTAX', message: error } };
     }
     await this.backupOverride(record.id);
-    const target = path.join(record.overrideDir, safeRel);
-    await fsp.mkdir(path.dirname(target), { recursive: true });
-    const tmp = `${target}.tmp-${process.pid}`;
-    await fsp.writeFile(tmp, content, 'utf8');
-    await fsp.rename(tmp, target);
+    // 写入即视为重新创建：清除该路径的墓碑，让文件重新可见
+    await this.removeTombstone(record.id, safeRel);
+    await this.writeOverrideFile(record, safeRel, content);
     record.manifest = (await this.readManifest(record.baseDir, record.id)) ?? record.manifest;
+    const reload = record.enabled ? await this.reload(record.id) : { ok: false };
+    this.emitPluginsChanged();
+    return { ok: true, reloaded: record.loaded, error: reload.error };
+  }
+
+  /**
+   * 新建文件（写入覆盖层，不修改内置基座）。
+   * - 路径相对插件目录，支持子目录；content 为空时按扩展名生成最小模板；
+   * - 目标已存在（覆盖层或未墓碑的基座文件）时抛 FILE_EXISTS；
+   * - 成功后热重载插件（与保存行为一致）。
+   */
+  async createFile(id: string, relPath: string, content?: string): Promise<PluginEditResult> {
+    const record = this.records.get(String(id));
+    if (!record) throw new ToolkitError('PLUGIN_NOT_FOUND', `插件不存在：${id}`);
+    const safeRel = assertCreatableRelPath(relPath);
+    const tombstoned = this.isTombstoned(record.id, safeRel);
+    // 已被墓碑删除的路径允许“重新创建”（覆盖层文件重新可见）
+    if (!tombstoned && this.resolveFile(record.id, safeRel)) {
+      throw new ToolkitError('FILE_EXISTS', `文件已存在：${safeRel}`);
+    }
+    const finalContent = typeof content === 'string' && content.length > 0 ? content : textTemplateFor(safeRel);
+    if (Buffer.byteLength(finalContent, 'utf8') > MAX_EDIT_BYTES) throw new ToolkitError('TOO_LARGE', '文件过大（>2MB）');
+    const syntax = this.validateCode(safeRel, finalContent);
+    if (syntax) return { ok: false, error: { code: 'SYNTAX', message: syntax } };
+    await this.backupOverride(record.id);
+    await this.writeOverrideFile(record, safeRel, finalContent);
+    await this.removeTombstone(record.id, safeRel);
+    record.manifest = (await this.readManifest(record.baseDir, record.id)) ?? record.manifest;
+    const reload = record.enabled ? await this.reload(record.id) : { ok: false };
+    this.emitPluginsChanged();
+    return { ok: true, reloaded: record.loaded, error: reload.error };
+  }
+
+  /**
+   * 删除文件：
+   * - 覆盖层存在同名文件 → 删除覆盖层文件（内置基座版本恢复可见；新建文件则彻底删除）；
+   * - 否则基座文件存在 → 写入墓碑（隐藏，可从“已删除文件”恢复）；
+   * - 二者都不存在（或已墓碑）→ FILE_NOT_FOUND。
+   * 删除导致插件加载失败时不回滚用户操作，只在结果 error 里带回加载错误。
+   */
+  async deleteFile(id: string, relPath: string): Promise<PluginEditResult> {
+    const record = this.records.get(String(id));
+    if (!record) throw new ToolkitError('PLUGIN_NOT_FOUND', `插件不存在：${id}`);
+    const safeRel = normalizeRelPath(relPath);
+    if (!safeRel || safeRel.includes('..')) throw new ToolkitError('BAD_PATH', '非法文件路径');
+    const overridePath = path.join(record.overrideDir, safeRel);
+    const basePath = path.join(record.baseDir, safeRel);
+    const isFile = (file: string) => {
+      try {
+        return fs.statSync(file).isFile();
+      } catch {
+        return false;
+      }
+    };
+    const tombstoned = this.isTombstoned(record.id, safeRel);
+    if (!tombstoned && isFile(overridePath)) {
+      await this.backupOverride(record.id);
+      await fsp.rm(overridePath, { force: true });
+      await this.pruneOverrideDirs(path.dirname(overridePath), record.overrideDir);
+      const reload = record.enabled ? await this.reload(record.id) : { ok: false };
+      this.emitPluginsChanged();
+      return { ok: true, reloaded: record.loaded, error: reload.error };
+    }
+    if (!tombstoned && isFile(basePath)) {
+      await this.backupOverride(record.id);
+      await this.addTombstone(record.id, safeRel);
+      const reload = record.enabled ? await this.reload(record.id) : { ok: false };
+      this.emitPluginsChanged();
+      return { ok: true, reloaded: record.loaded, error: reload.error };
+    }
+    throw new ToolkitError(
+      'FILE_NOT_FOUND',
+      tombstoned ? `文件已被删除：${safeRel}（可从“已删除文件”恢复）` : `文件不存在：${safeRel}`
+    );
+  }
+
+  /** 恢复被墓碑删除的文件（从墓碑清单移除并热重载）。 */
+  async restoreDeletedFile(id: string, relPath: string): Promise<PluginEditResult> {
+    const record = this.records.get(String(id));
+    if (!record) throw new ToolkitError('PLUGIN_NOT_FOUND', `插件不存在：${id}`);
+    const safeRel = normalizeRelPath(relPath);
+    if (!safeRel || safeRel.includes('..')) throw new ToolkitError('BAD_PATH', '非法文件路径');
+    const removed = await this.removeTombstone(record.id, safeRel);
+    if (!removed) throw new ToolkitError('FILE_NOT_FOUND', `没有该文件的删除记录：${safeRel}`);
     const reload = record.enabled ? await this.reload(record.id) : { ok: false };
     this.emitPluginsChanged();
     return { ok: true, reloaded: record.loaded, error: reload.error };
@@ -1022,6 +1366,8 @@ export class PluginHost {
     const target = rel ? path.join(overrideDir, String(rel)) : overrideDir;
     try {
       await fsp.rm(target, { recursive: true, force: true });
+      // 单文件恢复时同时清除该文件的墓碑（整体恢复会连 .deleted.json 一起删除）
+      if (rel) await this.removeTombstone(record.id, String(rel));
     } catch (err) {
       throw new ToolkitError('RESTORE_FAILED', `恢复失败：${err instanceof Error ? err.message : String(err)}`);
     }

@@ -1,4 +1,4 @@
-﻿/* ============================================================
+/* ============================================================
    便捷工具 · 黑玻璃边框强化层
    参考（本地已下载 skill 文档）：
    - anthropics/skills · frontend-design（有意图的层级、克制装饰、边框即结构）
@@ -367,5 +367,19 @@
 ::selection {
   background: rgba(var(--tk-accent-rgb), 0.35);
   color: #fff;
+}
+
+/* ------------------------------------------------------------ 面板壁纸层 */
+
+.panel-wallpaper {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background-size: cover;
+  background-position: center;
+  pointer-events: none;
+  border-radius: inherit;
+  transition: opacity 0.35s var(--tk-ease-soft);
+  filter: saturate(1.05);
 }
 
