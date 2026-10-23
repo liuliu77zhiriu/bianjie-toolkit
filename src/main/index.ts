@@ -16,6 +16,8 @@ import { TkProtocol, registerScheme } from './core/protocol';
 import { SettingsWindowManager } from './core/settings-window';
 import { WallpaperService } from './core/wallpapers';
 import { ThemeService } from './core/themes';
+import { UIEditorService } from './core/uieditor/service';
+import { UIEditorWindowManager } from './core/uieditor/window';
 import { createMediaApi } from './core/media';
 
 const gotLock = app.requestSingleInstanceLock();
@@ -51,6 +53,8 @@ let media: ReturnType<typeof createMediaApi>;
 let settingsWindow: SettingsWindowManager;
 let wallpapers: WallpaperService;
 let themes: ThemeService;
+let uieditor: UIEditorService;
+let uieditorWindow: UIEditorWindowManager;
 let quitting = false;
 
 function notify(opts: { title: string; body?: string }) {
@@ -125,6 +129,21 @@ async function bootstrap() {
     getParentWindow: () => settingsWindow.win ?? windows.panel ?? null,
   });
   themes = new ThemeService(pathsRef, logger);
+  uieditor = new UIEditorService({
+    paths: pathsRef,
+    logger,
+    getParentWindow: () => uieditorWindow?.win ?? windows.panel ?? windows.ball,
+    reloadPlugins: async () => {
+      await plugins.restart();
+    },
+  });
+  uieditorWindow = new UIEditorWindowManager({
+    paths: { preloadDir: pathsRef.preloadDir },
+    logger,
+    ipc,
+    getReferenceWindow: () => windows.panel ?? windows.ball,
+  });
+  uieditorWindow.registerIpc();
 
   overlay = new OverlayManager({
     paths: pathsRef,
@@ -165,12 +184,21 @@ async function bootstrap() {
     },
   });
 
-  plugins = new PluginHost({ paths: pathsRef, logger, settings, ipc, windows, overlay, media });
+  plugins = new PluginHost({
+    paths: pathsRef,
+    logger,
+    settings,
+    ipc,
+    windows,
+    overlay,
+    media,
+    uieditor: { openWindow: (projectId?: string) => uieditorWindow.open(projectId) },
+  });
   protocol.setPluginResolver((pluginId, relativePath) => plugins.resolveFile(pluginId, relativePath));
 
   shortcuts = new ShortcutManager({ settings, logger, plugins, windows });
 
-  new CoreService({ paths: pathsRef, logger, settings, ipc, windows, overlay, plugins, shortcuts, wallpapers, themes }).register();
+  new CoreService({ paths: pathsRef, logger, settings, ipc, windows, overlay, plugins, shortcuts, wallpapers, themes, uieditor }).register();
 
   settings.on('change', (next: ReturnType<SettingsService['get']>) => {
     try {
@@ -244,6 +272,8 @@ async function bootstrap() {
         media,
         shortcuts,
         settingsWindow,
+        uieditor,
+        uieditorWindow,
       });
     } catch (err) {
       logger.error('[test] 冒烟测试异常', err);
@@ -310,6 +340,7 @@ app.on('before-quit', (event) => {
       ]);
       tray?.destroy();
       settingsWindow?.destroy();
+      uieditorWindow?.destroy();
       windows?.destroy();
       logger?.info('[main] 清理完成');
     } catch (err) {
@@ -347,6 +378,8 @@ process.on('exit', () => {
     /* ignore */
   }
 });
+
+
 
 
 

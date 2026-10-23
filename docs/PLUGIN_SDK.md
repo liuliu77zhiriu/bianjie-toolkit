@@ -19,6 +19,18 @@ resources/plugins/<id>/          内置插件目录（只读）
 （包括新建文件）优先于基座；删除覆盖文件 = 恢复内置原版。插件清单 `plugin.json` 被墓碑删除时
 插件进入错误态但仍保留在列表，可进入编辑器恢复。
 
+## UI 编辑器快捷入口
+
+插件后端可通过 `ctx.uieditor.open(projectId?)` 打开应用内置的 UI 编辑器工作台（不传 projectId 时打开最近工程/新建）。适合做一个"打开设计器"的入口插件：
+
+```js
+ctx.commands.register({
+  id: 'studio',
+  label: '打开 UI 编辑器',
+  run: () => ctx.uieditor.open(),
+});
+```
+
 > 禁止直接 `require`/`import` npm 包或 Node 内置模块。插件后端只能使用 `ctx` 暴露的能力
 > 与 `ctx.electron`（Electron 原生 API）。所有 UI 只能通过 `window.toolkit` 与后端通信。
 

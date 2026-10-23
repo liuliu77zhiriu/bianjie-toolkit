@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+﻿import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import type { PluginRuntimeInfo, Settings } from '@shared/types';
 import {
   invoke,
@@ -100,6 +100,10 @@ export default function App() {
     (pluginId: string) => {
       if (pluginId === 'settings' || pluginId === 'settings:plugins') {
         openSettings(pluginId.includes(':') ? 'plugins' : undefined);
+        return;
+      }
+      if (pluginId === 'uieditor') {
+        void invoke('core', 'uieditor.openWindow').catch(() => toast('打开 UI 编辑器失败', 'error'));
         return;
       }
       const plugin = plugins.find((item) => item.id === pluginId);
@@ -322,5 +326,6 @@ export default function App() {
     </div>
   );
 }
+
 
 

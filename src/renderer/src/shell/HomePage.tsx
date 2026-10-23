@@ -13,6 +13,7 @@ interface HomePageProps {
 
 export function HomePage({ plugins, commands, onOpenTool, onOpenSettings, onQuickAction }: HomePageProps) {
   const enabled = plugins.filter((p) => p.enabled && p.hasUI && !p.manifest.hidden);
+  const tools = enabled.filter((plugin) => plugin.id !== 'uieditor');
   const quick = [
     { id: 'screenshot.region', label: '区域截图', icon: 'camera' as const, fallback: 'Alt+A' },
     { id: 'screenshot.full', label: '全屏截图', icon: 'monitor' as const, fallback: 'Alt+S' },
@@ -63,7 +64,7 @@ export function HomePage({ plugins, commands, onOpenTool, onOpenSettings, onQuic
       </div>
 
       <div className="tool-grid">
-        {enabled.map((plugin, index) => {
+        {tools.map((plugin, index) => {
           const accent = pluginAccent(plugin);
           return (
             <button
@@ -106,16 +107,30 @@ export function HomePage({ plugins, commands, onOpenTool, onOpenSettings, onQuic
         </div>
       ) : null}
 
-      <button className="home-extend" onClick={() => onOpenSettings('plugins')}>
-        <span className="home-extend-icon">
-          <Icon name="plus" size={14} />
-        </span>
-        <span className="home-extend-text">
-          <b>扩展工具箱</b>
-          <small>新建或导入插件，让工具随你生长</small>
-        </span>
-        <Icon name="chevron-right" size={14} />
-      </button>
+      <div className="home-bottom-row">
+        <button className="studio-card compact" onClick={() => onOpenTool('uieditor')} title="打开 UI 编辑器（可视化设计工作台）">
+          <span className="studio-icon">
+            <Icon name="sparkle" size={16} />
+          </span>
+          <span className="studio-copy">
+            <b>UI 编辑器</b>
+            <i>可视化设计 · 可导出</i>
+          </span>
+          <span className="studio-arrow">
+            <Icon name="chevron-right" size={14} />
+          </span>
+        </button>
+        <button className="home-extend" onClick={() => onOpenSettings('plugins')}>
+          <span className="home-extend-icon">
+            <Icon name="plus" size={14} />
+          </span>
+          <span className="home-extend-text">
+            <b>扩展工具箱</b>
+            <small>新建或导入插件</small>
+          </span>
+          <Icon name="chevron-right" size={14} />
+        </button>
+      </div>
 
       <div className="home-foot">
         <Icon name="bolt" size={12} />
@@ -124,4 +139,6 @@ export function HomePage({ plugins, commands, onOpenTool, onOpenSettings, onQuic
     </div>
   );
 }
+
+
 

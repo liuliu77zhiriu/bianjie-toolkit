@@ -22,7 +22,7 @@ const mainOptions = {
   define: { 'process.env.NODE_ENV': '"production"' },
 };
 
-const preloadEntries = ['panel', 'ball', 'overlay', 'plugin-window', 'recorder', 'settings'];
+const preloadEntries = ['panel', 'ball', 'overlay', 'plugin-window', 'recorder', 'settings', 'editor'];
 const preloadOptions = {
   entryPoints: preloadEntries.map((n) => path.join(rootDir, `src/preload/${n}.ts`)),
   outdir: path.join(dist, 'preload'),
@@ -66,5 +66,6 @@ main().catch((err) => {
   console.error('[build] failed:', err);
   process.exit(1);
 });
+
 
 

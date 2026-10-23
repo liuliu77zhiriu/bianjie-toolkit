@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self' tk:; img-src 'self' tk: data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; font-src 'self' data:;"
+    />
+    <meta name="color-scheme" content="dark" />
+    <title>UI 编辑器</title>
+    <link rel="stylesheet" href="tk://plugin-sdk/theme.css" />
+    <style>
+      html, body { height: 100%; margin: 0; background: transparent; overflow: hidden; }
+      body {
+        font-family: "Segoe UI", "Microsoft YaHei UI", system-ui, sans-serif;
+        color: #e9edf5;
+      }
+      .ui-entry {
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        padding: 16px;
+        box-sizing: border-box;
+        justify-content: center;
+        background:
+          radial-gradient(120% 80% at 100% 0%, rgba(76, 141, 255, .14), transparent 60%),
+          linear-gradient(160deg, rgba(16, 20, 31, .96), rgba(6, 8, 13, .98));
+      }
+      .badge { width: 42px; height: 42px; border-radius: 13px; display: grid; place-items: center;
+        background: linear-gradient(150deg, #4c8dff, #234a96); box-shadow: 0 10px 26px rgba(76,141,255,.35); }
+      .badge svg { width: 22px; height: 22px; }
+      h1 { margin: 0; font-size: 18px; letter-spacing: .3px; }
+      p { margin: 0; color: #8c97ab; font-size: 11.5px; line-height: 1.6; }
+      .features { display: grid; grid-template-columns: 1fr 1fr; gap: 5px 10px; margin: 2px 0; }
+      .features span { font-size: 10.5px; color: #aab4c6; }
+      .features span::before { content: "•"; color: #5b9dff; margin-right: 6px; }
+      button {
+        height: 38px; border-radius: 10px; border: 1px solid rgba(91,157,255,.42);
+        background: linear-gradient(150deg, rgba(91,157,255,.32), rgba(91,157,255,.14));
+        color: #e7f1ff; font-size: 12px; font-weight: 600; cursor: pointer;
+      }
+      button:hover { background: linear-gradient(150deg, rgba(91,157,255,.44), rgba(91,157,255,.2)); }
+      .hint { font-size: 10px; color: #6f7b90; text-align: center; }
+    </style>
+  </head>
+  <body>
+    <div class="ui-entry">
+      <div class="badge">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 4h16v16H4zM4 9h16M9 4v16" />
+          <path d="M12 12h5v5h-5z" fill="#fff" fill-opacity=".85" stroke="none" />
+        </svg>
+      </div>
+      <h1>UI 编辑器</h1>
+      <p>可视化设计界面，不写代码也能做出专业 UI。图层 / 组件 / 模板 / 设计令牌 / 交互原型 / 一键导出。</p>
+      <div class="features">
+        <span>自由画布与吸附</span>
+        <span>30+ 内置组件</span>
+        <span>多页面原型</span>
+        <span>导出 HTML / React</span>
+        <span>设计令牌系统</span>
+        <span>可发布为工具</span>
+      </div>
+      <button id="open">打开 UI 编辑器</button>
+      <div class="hint">建议在桌面环境下使用 · 支持 Ctrl+S 自动保存</div>
+    </div>
+    <script src="tk://plugin-sdk/sdk.js"></script>
+    <script>
+      document.getElementById('open').addEventListener('click', async function () {
+        try {
+          await window.toolkit.invoke('open');
+          if (window.toolkit.closePanel) window.toolkit.closePanel();
+        } catch (err) {
+          console.error(err);
+        }
+      });
+    </script>
+  </body>
+</html>

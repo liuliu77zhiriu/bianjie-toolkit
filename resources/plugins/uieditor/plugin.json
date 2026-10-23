@@ -1,0 +1,9 @@
+﻿{
+    "id":  "uieditor",
+    "name":  "UI 编辑器",
+    "description":  "像 Unity 一样可视化设计界面：图层、组件、模板、设计令牌、交互、导出 HTML/React/插件",
+    "version":  "1.0.0",
+    "icon":  "icon.svg",
+    "ui":  "index.html",
+    "order":  15
+}

@@ -1,4 +1,4 @@
-/* ============================================================
+﻿/* ============================================================
    便捷工具 · 主面板外壳样式
    ============================================================ */
 
@@ -1099,5 +1099,123 @@ body {
     transition-duration: 0.01ms !important;
   }
 }
+/* ------------------------------------------------------------ UI 编辑器入口 */
 
+.home-bottom-row {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+}
+.home-bottom-row > * {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.studio-card {
+  position: relative;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 11px 12px;
+  margin-top: 8px;
+  border-radius: 13px;
+  border: 1px solid rgba(91, 157, 255, 0.2);
+  background:
+    radial-gradient(120% 160% at 100% 0%, rgba(91, 157, 255, 0.16), transparent 55%),
+    linear-gradient(150deg, rgba(24, 32, 52, 0.9), rgba(10, 13, 21, 0.92));
+  color: var(--tk-text);
+  text-align: left;
+  cursor: pointer;
+  overflow: hidden;
+  transition: border-color 0.2s, transform 0.22s var(--tk-ease), background 0.2s;
+}
+.studio-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(120deg, transparent 20%, rgba(255, 255, 255, 0.06) 48%, transparent 70%);
+  opacity: 0;
+  transition: opacity 0.25s;
+  pointer-events: none;
+}
+.studio-card:hover {
+  border-color: rgba(91, 157, 255, 0.4);
+  transform: translateY(-1px);
+}
+.studio-card:hover::after { opacity: 1; }
+.studio-icon {
+  flex: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 11px;
+  display: grid;
+  place-items: center;
+  color: #eaf2ff;
+  background: linear-gradient(150deg, rgba(91, 157, 255, 0.9), rgba(37, 72, 148, 0.9));
+  box-shadow: 0 8px 20px rgba(76, 141, 255, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.28);
+}
+.studio-copy {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.studio-copy b {
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+}
+.studio-copy i {
+  font-style: normal;
+  font-size: 9.5px;
+  color: var(--tk-text-3);
+  line-height: 1.35;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.studio-tags {
+  display: flex;
+  gap: 3px;
+  flex: none;
+}
+.studio-tags em {
+  font-style: normal;
+  font-size: 8.5px;
+  padding: 2px 5px;
+  border-radius: 999px;
+  border: 1px solid rgba(91, 157, 255, 0.22);
+  background: rgba(91, 157, 255, 0.1);
+  color: #9cc4ff;
+}
+.studio-card.compact {
+  margin-top: 0;
+  padding: 7px 10px;
+  gap: 8px;
+}
+.studio-card.compact .studio-icon {
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+}
+.studio-card.compact .studio-copy i {
+  display: block;
+  font-size: 8.5px;
+  white-space: nowrap;
+}
+.studio-card.compact .studio-tags {
+  display: none;
+}
+.studio-card.compact .studio-arrow {
+  margin-left: auto;
+}
+.studio-arrow {
+  flex: none;
+  color: var(--tk-text-3);
+  display: grid;
+  place-items: center;
+}
 

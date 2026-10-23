@@ -12,6 +12,7 @@ import type { PluginHost } from './plugin-host';
 import type { ShortcutManager } from './shortcuts';
 import type { WallpaperService } from './wallpapers';
 import type { ThemeService } from './themes';
+import type { UIEditorService } from './uieditor/service';
 import { ToolkitError } from './errors';
 
 export interface CoreServiceDeps {
@@ -25,6 +26,7 @@ export interface CoreServiceDeps {
   shortcuts: ShortcutManager;
   wallpapers: WallpaperService;
   themes: ThemeService;
+  uieditor: UIEditorService;
 }
 
 export class CoreService {
@@ -318,9 +320,50 @@ export class CoreService {
       return this.deps.plugins.restoreDeletedFile(String(request?.id ?? ''), String(request?.path ?? ''));
     });
 
+    /* ---------------------------------------------------------- UI 编辑器 */
+
+    ipc.handle('core', 'uieditor.list', () => this.deps.uieditor.list());
+    ipc.handle('core', 'uieditor.load', (args) => this.deps.uieditor.load(String((args as { id?: string })?.id ?? '')));
+    ipc.handle('core', 'uieditor.defaultProject', () => this.deps.uieditor.defaultProject());
+    ipc.handle('core', 'uieditor.create', (args) => {
+      const request = args as { templateId?: string; name?: string; width?: number; height?: number };
+      return this.deps.uieditor.create(request ?? {});
+    });
+    ipc.handle('core', 'uieditor.save', (args) => {
+      const project = (args as { project?: Parameters<UIEditorService['save']>[0] })?.project;
+      if (!project) throw new ToolkitError('BAD_ARGS', '缺少工程数据');
+      return this.deps.uieditor.save(project);
+    });
+    ipc.handle('core', 'uieditor.duplicate', (args) => this.deps.uieditor.duplicate(String((args as { id?: string })?.id ?? '')));
+    ipc.handle('core', 'uieditor.remove', (args) => this.deps.uieditor.remove(String((args as { id?: string })?.id ?? '')));
+    ipc.handle('core', 'uieditor.importProject', () => this.deps.uieditor.importProject());
+    ipc.handle('core', 'uieditor.exportHtml', (args) => {
+      const project = (args as { project?: Parameters<UIEditorService['save']>[0] })?.project;
+      if (!project) throw new ToolkitError('BAD_ARGS', '缺少工程数据');
+      return this.deps.uieditor.exportHtml(project);
+    });
+    ipc.handle('core', 'uieditor.exportJson', (args) => {
+      const project = (args as { project?: Parameters<UIEditorService['save']>[0] })?.project;
+      if (!project) throw new ToolkitError('BAD_ARGS', '缺少工程数据');
+      return this.deps.uieditor.exportJson(project);
+    });
+    ipc.handle('core', 'uieditor.exportReact', (args) => {
+      const project = (args as { project?: Parameters<UIEditorService['save']>[0] })?.project;
+      if (!project) throw new ToolkitError('BAD_ARGS', '缺少工程数据');
+      return this.deps.uieditor.exportReact(project);
+    });
+    ipc.handle('core', 'uieditor.publishPlugin', (args) => {
+      const project = (args as { project?: Parameters<UIEditorService['save']>[0] })?.project;
+      if (!project) throw new ToolkitError('BAD_ARGS', '缺少工程数据');
+      return this.deps.uieditor.publishPlugin(project);
+    });
+    ipc.handle('core', 'uieditor.openFolder', () => this.deps.uieditor.openFolder());
+    ipc.handle('core', 'uieditor.paths', () => this.deps.uieditor.pathsInfo);
+
     ipc.handle('core', 'overlay.pickRegion', () => this.deps.overlay.pickRegion());
   }
 }
+
 
 
 

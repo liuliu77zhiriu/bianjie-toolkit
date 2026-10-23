@@ -1,0 +1,797 @@
+/* ============================================================================
+ * UI 编辑器 · 画布样式（全部类名以 uc- 前缀，避免与面板样式冲突）
+ * 深色工作台：#0b0d13，控制层蓝色强调 #4C8DFF
+ * ========================================================================== */
+
+/* ---------------------------------------------------------------- 节点内容 */
+
+.uc-node {
+  flex-shrink: 0;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.uc-node--input,
+.uc-node--textarea {
+  padding-left: 12px;
+  padding-right: 12px;
+}
+
+.uc-text {
+  min-width: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.uc-text--empty {
+  opacity: 0.34;
+  font-style: italic;
+}
+
+.uc-field-text {
+  min-width: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.uc-field-text--area {
+  align-items: flex-start !important;
+  padding-top: 8px;
+}
+
+.uc-field-text--placeholder {
+  opacity: 0.44;
+}
+
+.uc-icon {
+  display: block;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.uc-icon svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.uc-image {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+.uc-image--empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.uc-image-empty-icon {
+  width: 28px;
+  height: 28px;
+  max-width: 42%;
+  max-height: 42%;
+}
+
+.uc-image-empty-icon svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.uc-image-empty-hint {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.34);
+  white-space: nowrap;
+}
+
+/* toggle */
+.uc-toggle {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.uc-toggle-fill {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  transition: background-color 0.15s ease;
+}
+
+.uc-toggle-knob {
+  position: absolute;
+  border-radius: 999px;
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
+  transition: left 0.15s ease;
+}
+
+/* slider / progress */
+.uc-slider {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+.uc-slider-track {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 4px;
+  margin-top: -2px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.uc-slider-fill {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  height: 4px;
+  margin-top: -2px;
+  border-radius: 999px;
+  background: #4c8dff;
+}
+
+.uc-slider-knob {
+  position: absolute;
+  top: 50%;
+  width: 14px;
+  height: 14px;
+  margin-left: -7px;
+  margin-top: -7px;
+  border-radius: 999px;
+  background: #ffffff;
+  border: 3px solid #4c8dff;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+}
+
+.uc-progress {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.uc-progress-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  border-radius: inherit;
+  background: #4c8dff;
+}
+
+/* avatar */
+.uc-avatar {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: inherit;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.uc-avatar-icon {
+  width: 58%;
+  height: 58%;
+}
+
+.uc-avatar-icon svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.uc-avatar-label {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* tabs */
+.uc-tabs {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px;
+  border-radius: inherit;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.uc-tab {
+  flex: 1 1 0;
+  min-width: 0;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  color: rgba(232, 236, 244, 0.62);
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.uc-tab.is-active {
+  background: rgba(76, 141, 255, 0.22);
+  color: #ffffff;
+  box-shadow: inset 0 0 0 1px rgba(76, 141, 255, 0.45);
+}
+
+/* list */
+.uc-list {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  border-radius: inherit;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.uc-list-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+  min-height: 18px;
+}
+
+.uc-list-dot {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+  border-radius: 999px;
+  background: rgba(76, 141, 255, 0.32);
+}
+
+.uc-list-label {
+  min-width: 0;
+  font-size: 12px;
+  color: rgba(232, 236, 244, 0.78);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.uc-list-lines {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  flex: 1 1 auto;
+}
+
+.uc-list-line {
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.uc-list-line--short {
+  width: 56%;
+  background: rgba(255, 255, 255, 0.07);
+}
+
+/* ---------------------------------------------------------------- 画布容器 */
+
+.uc-canvas {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background-color: #0b0d13;
+  outline: none;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.uc-grid {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.75;
+}
+
+.uc-viewport {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform-origin: 0 0;
+  will-change: transform;
+}
+
+.uc-board {
+  position: absolute;
+  left: 0;
+  top: 0;
+  overflow: hidden;
+  border-radius: 3px;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.07),
+    0 24px 70px rgba(0, 0, 0, 0.55),
+    0 6px 18px rgba(0, 0, 0, 0.4);
+}
+
+.uc-board-label {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 20px;
+  padding: 0 2px;
+  font-size: 11px;
+  letter-spacing: 0.02em;
+  color: rgba(190, 200, 218, 0.72);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.uc-board-label b {
+  font-weight: 600;
+  color: rgba(226, 234, 248, 0.9);
+}
+
+/* ---------------------------------------------------------------- 覆盖层 */
+
+.uc-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 3;
+}
+
+.uc-sel,
+.uc-hover {
+  position: absolute;
+  pointer-events: none;
+  box-sizing: border-box;
+}
+
+.uc-sel {
+  border: 1px solid #4c8dff;
+  box-shadow: 0 0 0 1px rgba(76, 141, 255, 0.18) inset;
+}
+
+.uc-sel--locked {
+  border-style: dashed;
+  border-color: rgba(255, 180, 84, 0.9);
+}
+
+.uc-hover {
+  border: 1px solid rgba(76, 141, 255, 0.65);
+}
+
+.uc-sel-label {
+  position: absolute;
+  display: inline-flex;
+  align-items: center;
+  height: 17px;
+  padding: 0 6px;
+  border-radius: 4px;
+  background: #4c8dff;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  letter-spacing: 0.02em;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.uc-sel-size {
+  position: absolute;
+  left: 50%;
+  bottom: -24px;
+  transform: translateX(-50%);
+  display: inline-flex;
+  align-items: center;
+  height: 17px;
+  padding: 0 6px;
+  border-radius: 4px;
+  background: rgba(11, 13, 19, 0.92);
+  border: 1px solid rgba(76, 141, 255, 0.55);
+  color: #cfe0ff;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.uc-handle {
+  position: absolute;
+  width: 9px;
+  height: 9px;
+  margin-left: -4.5px;
+  margin-top: -4.5px;
+  border-radius: 2px;
+  background: #ffffff;
+  border: 1.5px solid #4c8dff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+  pointer-events: auto;
+  touch-action: none;
+}
+
+.uc-handle--nw { cursor: nwse-resize; }
+.uc-handle--n { cursor: ns-resize; }
+.uc-handle--ne { cursor: nesw-resize; }
+.uc-handle--e { cursor: ew-resize; }
+.uc-handle--se { cursor: nwse-resize; }
+.uc-handle--s { cursor: ns-resize; }
+.uc-handle--sw { cursor: nesw-resize; }
+.uc-handle--w { cursor: ew-resize; }
+
+.uc-rotate-stem {
+  position: absolute;
+  width: 1px;
+  height: 22px;
+  background: rgba(76, 141, 255, 0.7);
+  pointer-events: none;
+}
+
+.uc-rotate-handle {
+  position: absolute;
+  width: 11px;
+  height: 11px;
+  margin-left: -5.5px;
+  margin-top: -5.5px;
+  border-radius: 999px;
+  background: #ffffff;
+  border: 1.5px solid #4c8dff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+  cursor: grab;
+  pointer-events: auto;
+  touch-action: none;
+}
+
+.uc-marquee {
+  position: absolute;
+  border: 1px solid #4c8dff;
+  background: rgba(76, 141, 255, 0.12);
+  pointer-events: none;
+}
+
+.uc-create-rect {
+  position: absolute;
+  border: 1px dashed rgba(76, 141, 255, 0.9);
+  background: rgba(76, 141, 255, 0.08);
+  pointer-events: none;
+}
+
+.uc-create-hint {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: 4px;
+  padding: 1px 5px;
+  border-radius: 3px;
+  background: rgba(11, 13, 19, 0.92);
+  border: 1px solid rgba(76, 141, 255, 0.45);
+  color: #cfe0ff;
+  font-size: 10px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.uc-guide {
+  position: absolute;
+  background: #ff4d8d;
+  pointer-events: none;
+}
+
+.uc-guide--v {
+  width: 1px;
+  top: 0;
+  bottom: 0;
+}
+
+.uc-guide--h {
+  height: 1px;
+  left: 0;
+  right: 0;
+}
+
+.uc-measure {
+  position: absolute;
+  background: #ff4d8d;
+  pointer-events: none;
+}
+
+.uc-measure--h {
+  height: 1px;
+}
+
+.uc-measure--v {
+  width: 1px;
+}
+
+.uc-measure-label {
+  position: absolute;
+  padding: 0 4px;
+  border-radius: 3px;
+  background: #ff4d8d;
+  color: #1a0410;
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 14px;
+  white-space: nowrap;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+/* ---------------------------------------------------------------- 标尺 */
+
+.uc-rulers {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 4;
+  font-variant-numeric: tabular-nums;
+}
+
+.uc-ruler {
+  position: absolute;
+  background: rgba(12, 15, 22, 0.92);
+  border-color: rgba(255, 255, 255, 0.07);
+  overflow: hidden;
+}
+
+.uc-ruler-top {
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.uc-ruler-left {
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 20px;
+  border-right: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.uc-ruler-corner {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 20px;
+  height: 20px;
+  background: #0e1119;
+  border-right: 1px solid rgba(255, 255, 255, 0.07);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.uc-tick {
+  position: absolute;
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.uc-ruler-top .uc-tick {
+  top: 12px;
+  bottom: 0;
+  width: 1px;
+}
+
+.uc-ruler-left .uc-tick {
+  left: 12px;
+  right: 0;
+  height: 1px;
+}
+
+.uc-tick span {
+  position: absolute;
+  font-size: 9px;
+  line-height: 1;
+  color: rgba(160, 172, 192, 0.72);
+}
+
+.uc-ruler-top .uc-tick span {
+  left: 3px;
+  top: -11px;
+}
+
+.uc-ruler-left .uc-tick span {
+  left: 1px;
+  top: 1px;
+  font-size: 8px;
+}
+
+/* ---------------------------------------------------------------- 缩放控件 */
+
+.uc-zoom {
+  position: absolute;
+  left: 28px;
+  bottom: 18px;
+  z-index: 6;
+  display: flex;
+  align-items: center;
+  gap: 1px;
+  padding: 3px;
+  border-radius: 9px;
+  background: rgba(16, 18, 26, 0.88);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(8px);
+}
+
+.uc-zoom-btn {
+  height: 24px;
+  min-width: 24px;
+  padding: 0 6px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: rgba(226, 234, 248, 0.86);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.uc-zoom-btn:hover {
+  background: rgba(255, 255, 255, 0.09);
+}
+
+.uc-zoom-value {
+  min-width: 46px;
+  font-variant-numeric: tabular-nums;
+}
+
+.uc-zoom-sep {
+  width: 1px;
+  height: 16px;
+  background: rgba(255, 255, 255, 0.1);
+  margin: 0 2px;
+}
+
+/* ---------------------------------------------------------------- 右键菜单 */
+
+.uc-menu {
+  position: absolute;
+  z-index: 20;
+  min-width: 168px;
+  padding: 5px;
+  border-radius: 10px;
+  background: rgba(18, 21, 30, 0.98);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(10px);
+  font-size: 12px;
+  color: #dfe6f2;
+  pointer-events: auto;
+}
+
+.uc-menu-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  height: 28px;
+  padding: 0 9px;
+  border-radius: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.uc-menu-item:hover {
+  background: rgba(76, 141, 255, 0.2);
+  color: #ffffff;
+}
+
+.uc-menu-item.is-danger:hover {
+  background: rgba(255, 107, 129, 0.18);
+  color: #ffb3bf;
+}
+
+.uc-menu-item kbd {
+  font-family: inherit;
+  font-size: 10px;
+  color: rgba(160, 172, 192, 0.6);
+}
+
+.uc-menu-sep {
+  height: 1px;
+  margin: 4px 6px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* ---------------------------------------------------------------- 内联编辑 */
+
+.uc-edit-layer {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform-origin: 0 0;
+  z-index: 8;
+  pointer-events: none;
+}
+
+.uc-inline-edit {
+  position: absolute;
+  padding: 0 2px;
+  outline: 2px solid #4c8dff;
+  outline-offset: 1px;
+  background: rgba(11, 13, 19, 0.55);
+  border-radius: 3px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  pointer-events: auto;
+  cursor: text;
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+.uc-inline-hint {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  padding: 4px 10px;
+  border-radius: 6px;
+  background: rgba(18, 21, 30, 0.94);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: rgba(190, 200, 218, 0.8);
+  font-size: 12px;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+/* 轻提示（锁定等） */
+.uc-hint {
+  position: absolute;
+  left: 50%;
+  bottom: 26px;
+  transform: translateX(-50%);
+  z-index: 30;
+  padding: 6px 12px;
+  border-radius: 8px;
+  background: rgba(18, 21, 30, 0.96);
+  border: 1px solid rgba(255, 180, 84, 0.4);
+  color: #ffd7a1;
+  font-size: 12px;
+  white-space: nowrap;
+  pointer-events: none;
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.5);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .uc-hint {
+    animation: uc-hint-in 0.16s ease-out;
+  }
+}
+
+@keyframes uc-hint-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 4px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}

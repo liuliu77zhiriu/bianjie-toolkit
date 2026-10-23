@@ -1,4 +1,4 @@
-import { BrowserWindow, app, clipboard, dialog, ipcMain, nativeImage, Notification, shell, screen, desktopCapturer } from 'electron';
+﻿import { BrowserWindow, app, clipboard, dialog, ipcMain, nativeImage, Notification, shell, screen, desktopCapturer } from 'electron';
 import fs from 'node:fs';
 import fsp from 'node:fs/promises';
 import path from 'node:path';
@@ -206,6 +206,7 @@ export interface PluginHostDeps {
   windows: WindowManager;
   overlay: OverlayManager;
   media: MediaApi;
+  uieditor?: { openWindow: (projectId?: string) => void };
 }
 
 type PluginContext = Record<string, unknown> & {
@@ -216,6 +217,7 @@ type PluginContext = Record<string, unknown> & {
   events: { broadcast: (topic: string, payload?: unknown) => void; on: (topic: string, fn: (payload: unknown) => void) => () => void };
   commands: { register: (def: PluginCommandDef & { run: (args?: unknown) => unknown }) => () => void; run: (id: string, args?: unknown) => unknown };
   windows: Record<string, unknown>;
+  uieditor: { open: (projectId?: string) => void };
   store: PluginStore;
 };
 
@@ -248,6 +250,17 @@ export class PluginHost {
       await this.deactivate(record);
     }
     this.records.clear();
+  }
+
+  /** 重新扫描并重载所有插件（用于安装/发布新插件后恢复命令与状态） */
+  async restart() {
+    await this.stop();
+    this.started = true;
+    await this.discover();
+    for (const record of this.records.values()) {
+      if (record.enabled) await this.activate(record);
+    }
+    this.emitPluginsChanged();
   }
 
   /** 应用退出时调用：允许插件窗口真正关闭（hideOnClose 不再拦截） */
@@ -468,7 +481,7 @@ export class PluginHost {
   }
 
   private createContext(record: PluginRecord): PluginContext {
-    const { paths, ipc, settings, logger, windows, overlay, media } = this.deps;
+    const { paths, ipc, settings, logger, windows, overlay, media, uieditor } = this.deps;
     const pluginId = record.id;
     const dataDir = path.join(paths.userData, 'plugin-data');
     fs.mkdirSync(dataDir, { recursive: true });
@@ -497,6 +510,9 @@ export class PluginHost {
         debug: (...args: unknown[]) => logger.debug(`[${record.id}]`, ...args),
       },
       paths,
+      uieditor: {
+        open: (projectId?: string) => uieditor?.openWindow(projectId),
+      },
       store: record.store,
       ipc: {
         handle: (method, fn) => {
@@ -1490,5 +1506,8 @@ export class PluginHost {
     this.deps.ipc.broadcast('plugin:reloaded', { pluginId });
   }
 }
+
+
+
 
 

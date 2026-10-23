@@ -30,6 +30,7 @@ export default defineConfig({
         overlay: resolve(rendererRoot, 'overlay.html'),
         recorder: resolve(rendererRoot, 'recorder.html'),
         settings: resolve(rendererRoot, 'settings.html'),
+        editor: resolve(rendererRoot, 'editor.html'),
       },
     },
   },
@@ -38,4 +39,5 @@ export default defineConfig({
     strictPort: true,
   },
 });
+
 

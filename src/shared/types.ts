@@ -439,6 +439,13 @@ export interface TkBridge {
     close(): void;
     minimize(): void;
   };
+  /** 仅 UI 编辑器窗口 preload 提供 */
+  editor?: {
+    ready(): void;
+    close(): void;
+    minimize(): void;
+    toggleMaximize(): void;
+  };
 }
 
 declare global {
@@ -446,5 +453,6 @@ declare global {
     tk: TkBridge;
   }
 }
+
 
 

@@ -23,6 +23,11 @@ src/
       settings-window.ts 独立设置窗口（单实例、侧边栏布局、可缩放）
       wallpapers.ts      壁纸服务（内置/导入/URL 下载/应用/删除/设为桌面壁纸）
       themes.ts          UI 主题服务（内置预设 + 自定义主题持久化）
+      settings-window.ts 独立设置窗口（单实例、侧边栏布局、可缩放）
+      uieditor/
+        service.ts       UI 编辑器工程存储 + HTML/JSON/React 导出 + 发布为插件
+        window.ts        UI 编辑器独立窗口（最大化、关闭隐藏）
+        export.ts        纯函数导出器（自包含 HTML / React / 截图片段）
       tray.ts            托盘与菜单
       shortcuts.ts       全局快捷键
       commands.ts        插件命令注册表（托盘 / 快捷键 / 快捷操作共用）
@@ -30,16 +35,20 @@ src/
       updater.ts         预留：更新检查
     testing/             测试模式脚本（Lead）
   preload/               预加载脚本（contextBridge，只暴露受控 API）
-    panel.ts  ball.ts  overlay.ts  plugin-window.ts  recorder.ts  settings.ts
+    panel.ts  ball.ts  overlay.ts  plugin-window.ts  recorder.ts  settings.ts  editor.ts
   renderer/              渲染进程（React 外壳 + 插件 UI 沙箱页）
     index.html           主面板
     ball.html            悬浮球
     overlay.html         区域截图遮罩
     recorder.html        隐藏录制页（capture-dev）
     settings.html        独立设置窗口
+    editor.html          UI 编辑器工作台
     src/
       shell/             外壳：路由、页面动效、弹层、Toast、悬浮球 UI（Lead）
       settings/          ★ 独立设置窗口：侧边栏 + 宽内容区 + 编辑器视图（Lead）
+      editor/            UI 编辑器：store / 画布 / 左右面板 / 预览 / 顶栏 / 工具栏 / 样式
+        canvas/          画布渲染与交互（NodeView/CanvasStage）
+        panels/          图层/组件/模板/页面/资源 + 属性/令牌/交互
       ui/                设计系统基础组件（Lead）
       pages/settings/    ★ 设置 / 个性化 / 插件管理 / 代码编辑器
       theme/             设计令牌 + 全局样式 + glass-borders 黑玻璃边框 + settings-window.css
@@ -49,15 +58,16 @@ resources/
   plugin-sdk/sdk.js      插件 UI 通信 SDK（tk://plugin-sdk/sdk.js）
   plugin-sdk/theme.css   插件 UI 主题样式（tk://plugin-sdk/theme.css）
   plugin-sdk/glass-borders.css  插件黑玻璃边框层（由 theme.css @import）
-  wallpapers/            内置壁纸（manifest.json + 6 张 1920×1080 JPEG，Lead/个性化）
+  wallpapers/            内置壁纸（manifest.json + 6 张 1920×1080 JPEG）
   plugins/               内置插件（每个插件一个目录，独立归属）
     screenshot/          ★ capture-dev
     recorder/            ★ capture-dev
     memo/                ★ productivity-dev
     timer/               ★ productivity-dev
+    uieditor/            UI 编辑器入口插件（命令/缩略页，真正工作台在 editor.html）
   icons/                 应用图标 / 托盘图标
 tests/                   自动化测试（Lead 装配，插件作者补充各自用例）
-docs/                    文档（架构 / 插件 SDK / 用户手册 / UI 设计说明）
+docs/                    文档（架构 / 插件 SDK / 用户手册 / UI 设计说明 / UI 编辑器）
 ```
 
 ★ = 由对应 teammate 独占写入；其余由 Lead 维护。禁止跨区修改，需要契约变更时先联系 Lead。
@@ -81,6 +91,7 @@ npm run package    # 打包绿色版（复制本地 Electron 运行时 + resedit
 | ball | 72×72 透明无边框常驻悬浮球，可拖动、可隐藏，点击开关主面板 |
 | panel | 452×652 透明无边框主面板（Win11 acrylic 毛玻璃 + CSS 玻璃层），页面切换为弹簧动效 |
 | settings | 独立设置窗口（默认 920×720，可缩放），侧边栏分类 + 宽内容区；关闭只隐藏，单实例复用 |
+| editor | UI 编辑器工作台（默认最大化、可缩放），三栏布局 + 预览覆盖层；关闭只隐藏 |
 | overlay | 每个显示器一块全屏透明遮罩，用于框选区域截图 |
 | mini-* | 插件通过 `ctx.windows.open()` 创建的持久小窗（如计时器桌面悬浮窗） |
 | recorder | 隐藏窗口，持有 `getDisplayMedia`/MediaRecorder，负责把录制数据流回主进程落盘 |
@@ -98,6 +109,7 @@ npm run package    # 打包绿色版（复制本地 Electron 运行时 + resedit
 - 设置窗口专用：`settings.openWindow({tab?})`、`settings.closeWindow`、`settings.minimizeWindow`、`settings.windowReady`；打开指定分类用 `settings:tab` 事件下发。
 - 个性化：`wallpapers.list/current/import/download/apply/remove/setDesktop`、`themes.list/apply/save/delete`。
 - 编辑器文件：`plugins.createFile`、`plugins.deleteFile`、`plugins.restoreDeleted`（`plugins.files` 返回 `deletedFiles`）。
+- UI 编辑器：窗口 `uieditor.openWindow/closeWindow/minimizeWindow/toggleMaximize/windowReady/windowState`；工程 `uieditor.list/load/defaultProject/create/save/duplicate/remove/importProject`；导出 `uieditor.exportHtml/exportJson/exportReact/publishPlugin/openFolder`。打开指令用 `uieditor:open` 事件下发 `{ projectId }`，渲染层先 `window.tk.editor.ready()` 再接收。
 - 插件后端 IPC：`ctx.ipc.handle(method, handler)`，对应 UI 的 `toolkit.invoke(method, args)`。
 - 插件后端事件：`ctx.events.broadcast(topic, payload)` → 该插件所有 UI 的 `toolkit.on(topic, cb)`；
   UI → 后端：`toolkit.send(topic, payload)` → `ctx.events.on(topic, cb)`。
@@ -116,6 +128,17 @@ npm run package    # 打包绿色版（复制本地 Electron 运行时 + resedit
 - 新建文件：`createFile(id, relPath, content?)` 自动创建子目录、按扩展名给模板、备份并热重载；恢复：`restoreDeletedFile(id, relPath)`。若删除 `plugin.json` 导致插件失效，插件仍保留在列表中（错误态），可进入编辑器恢复。
 - 新插件：设置 → 扩展 → 新建插件，生成用户插件目录模板（`%APPDATA%/便捷工具/plugins/<id>`）。
 - 内置插件的 `plugin.json` 可声明 `commands`（托盘/快捷键命令），`ctx.commands.register` 注册后由内核统一派发。
+
+## UI 编辑器架构
+
+- **数据模型**（`src/shared/uieditor.ts`）：规范化节点树 + 多页面（`screens`）+ 设计令牌 + 状态样式 + 交互；几何属性扁平化，画布、预览、导出共用同一份 schema。
+- **共享工具**：`uieditor-kit.ts`（节点/工程工厂、插入/克隆、颜色与样式输出）、`uieditor-render.ts`（nodeCss/nodeTextCss/iconSvg，保证设计态与导出 HTML 一致）、`uieditor-presets.ts`（29 个组件预设）、`uieditor-templates.ts`（7 套页面模板）。
+- **状态仓库**（`renderer/src/editor/store.ts`）：`useSyncExternalStore` 单一快照；历史快照 80 步；拖拽 `beginGesture/endGesture` 合并为一步；选择/缩放/平移等视图状态不进历史。
+- **画布**（`canvas/`）：网格/标尺/画板；自由拖拽/8 向缩放/旋转、网格与参考线吸附、框选、创建工具、内联编辑、右键菜单；NodeView `React.memo`，数据版本订阅 `project.updatedAt`，视图变化不重绘节点树；rAF 合并指针更新。
+- **面板**（`panels/`）：图层树（拖拽换层级、显隐/锁定）、组件库、模板、页面、资源；属性/设计令牌/交互与状态样式检查器。
+- **工程存储**（`main/core/uieditor/service.ts`）：`userData/uieditor/projects/*.json` 原子写；列表/创建/复制/删除/导入；自动保存由渲染层 debounce 900ms 触发。
+- **导出/发布**：`export.ts` 纯函数生成自包含 HTML（多屏、交互、状态、缩放适配）、React TSX+CSS、工程 JSON；发布时写用户插件目录并 `PluginHost.restart()` 恢复所有插件命令与状态。
+- **窗口**：`main/core/uieditor/window.ts` 单实例最大化窗口 + `editor.ts` preload；关闭隐藏，退出时销毁。
 
 ## 设置项（核心 schema，变更需同步 `shared/types.ts` 与设置页）
 
@@ -136,7 +159,7 @@ npm run package    # 打包绿色版（复制本地 Electron 运行时 + resedit
 
 ## 测试要求
 
-- Lead 提供 `npm run smoke`：启动真实应用，跑 20 项检查（窗口/悬浮球贴边/截图/录屏/计时器/独立设置窗口/个性化主题壁纸/编辑器文件增删恢复/插件热重载），产出 `artifacts/` 截图与 `report.json`。
+- Lead 提供 `npm run smoke`：启动真实应用，跑 21 项检查（窗口/悬浮球贴边/截图/录屏/计时器/独立设置窗口/个性化主题壁纸/编辑器文件增删恢复/UI 编辑器工作台与预览/HTML 导出真实加载/发布插件/插件热重载），产出 `artifacts/` 截图与 `report.json`。
 - teammate 只写自己模块的单元/集成用例到 `tests/<module>.test.mjs`（Node 原生 test runner，`node --test`），并保证 `npm run smoke` 相关断言通过。
 
 

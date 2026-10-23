@@ -1,4 +1,4 @@
-﻿/**
+/**
  * 冒烟测试脚本（npm run smoke，TK_TEST=1 时由主进程加载）。
  * 覆盖：面板/悬浮球/桌面外观、插件列表、设置读写、截图、录屏、插件 iframe、设置页。
  */
@@ -15,6 +15,9 @@ import type { SettingsService } from '../core/settings';
 import type { ShortcutManager } from '../core/shortcuts';
 import type { WindowManager } from '../core/windows';
 import type { SettingsWindowManager } from '../core/settings-window';
+import { exportStandaloneHtml } from '../core/uieditor/export';
+import type { UIEditorService } from '../core/uieditor/service';
+import type { UIEditorWindowManager } from '../core/uieditor/window';
 
 export interface SmokeEnv {
   app: typeof import('electron').app;
@@ -29,6 +32,8 @@ export interface SmokeEnv {
   media: MediaApi;
   shortcuts: ShortcutManager;
   settingsWindow: SettingsWindowManager;
+  uieditor: UIEditorService;
+  uieditorWindow: UIEditorWindowManager;
 }
 
 interface StepResult {
@@ -403,6 +408,108 @@ export async function runSmoke(env: SmokeEnv): Promise<void> {
     return `主题 → ${applied.appearance.accent} · 壁纸 ${current.selector} · 内置 ${list.length} 张 · ${downloadedInfo} · 自定义主题增删`;
   });
 
+  await run('UI 编辑器工作台', async () => {
+    let project;
+    try {
+      project = await env.uieditor.create({ templateId: 'dashboard' });
+    } catch {
+      project = await env.uieditor.create({ templateId: 'blank' });
+    }
+    project.name = '冒烟设计';
+    await env.uieditor.save(project);
+    env.uieditorWindow.open(project.id);
+    await wait(2800);
+    const win = env.uieditorWindow.win;
+    if (!win || win.isDestroyed()) throw new Error('UI 编辑器窗口未创建');
+    const state = (await win.webContents.executeJavaScript(`(() => ({
+      app: !!document.querySelector('.ue-app'),
+      toolbar: !!document.querySelector('.ue-toolbar'),
+      workbench: !!document.querySelector('.ue-workbench'),
+      status: !!document.querySelector('.ue-statusbar'),
+      panels: document.querySelectorAll('.ue-panel-tab, .up-tab, [role="tab"]').length,
+      title: document.querySelector('.ue-name-button')?.textContent ?? '',
+      nodes: document.querySelectorAll('[data-node-id]').length,
+      canvasNodes: document.querySelectorAll('.uc-node').length,
+      sample: Array.from(document.querySelectorAll('.uc-node')).slice(0, 6).map((el) => {
+        const rect = el.getBoundingClientRect();
+        const style = getComputedStyle(el);
+        return { cls: el.className, x: Math.round(rect.x), y: Math.round(rect.y), w: Math.round(rect.width), h: Math.round(rect.height), opacity: style.opacity, display: style.display, visibility: style.visibility };
+      }),
+    }))()`)) as { app: boolean; toolbar: boolean; workbench: boolean; status: boolean; panels: number; title: string; nodes: number; canvasNodes: number; sample: unknown[] };
+    if (!state.app || !state.toolbar || !state.workbench) throw new Error('UI 编辑器外壳未渲染');
+    if (!state.title.includes('冒烟设计')) throw new Error(`工程名称未加载：${state.title}`);
+    const shot = await win.webContents.capturePage();
+    fs.writeFileSync(path.join(outDir, '30-ui-editor.png'), shot.toPNG());
+    // 工程库
+    await win.webContents.executeJavaScript(
+      "(() => { const button = document.querySelector('button[title=\"工程库\"]'); button?.click(); return !!button; })()"
+    );
+    await wait(650);
+    const projectsState = (await win.webContents.executeJavaScript(`(() => ({
+      modal: !!document.querySelector('.ue-project-modal'),
+      cards: document.querySelectorAll('.ue-project-card').length,
+    }))()`)) as { modal: boolean; cards: number };
+    if (!projectsState.modal) throw new Error('工程库未打开');
+    const projectsShot = await win.webContents.capturePage();
+    fs.writeFileSync(path.join(outDir, '33-ui-projects.png'), projectsShot.toPNG());
+    await win.webContents.executeJavaScript(
+      "(() => { const close = document.querySelector('.ue-project-modal .ue-icon-btn[title=\"关闭\"]'); close?.click(); return !!close; })()"
+    );
+    await wait(250);
+    // 切到预览模式并截图
+    await win.webContents.executeJavaScript(
+      "(() => { const buttons = Array.from(document.querySelectorAll('.ue-mode')); const preview = buttons.find((b) => b.textContent.includes('预览')); preview?.click(); return !!preview; })()"
+    );
+    await wait(800);
+    const previewShot = await win.webContents.capturePage();
+    fs.writeFileSync(path.join(outDir, '31-ui-editor-preview.png'), previewShot.toPNG());
+    env.uieditorWindow.close();
+    await wait(300);
+    const list = await env.uieditor.list();
+    if (!list.some((item) => item.name === '冒烟设计')) throw new Error('工程未落盘');
+    // 导出独立 HTML，并用真实 BrowserWindow 打开验证
+    const html = exportStandaloneHtml(project, { title: '冒烟导出' });
+    const htmlPath = path.join(outDir, 'ui-export-smoke.html');
+    fs.writeFileSync(htmlPath, html, 'utf8');
+    const exportWin = new BrowserWindow({
+      show: false,
+      width: 1280,
+      height: 800,
+      backgroundColor: '#05070c',
+      webPreferences: { sandbox: true, contextIsolation: true, nodeIntegration: false },
+    });
+    let exportScreens = 0;
+    try {
+      await exportWin.loadFile(htmlPath);
+      await wait(450);
+      exportScreens = (await exportWin.webContents.executeJavaScript(
+        "document.querySelectorAll('.uis-screen').length"
+      )) as number;
+      if (!exportScreens) throw new Error('导出 HTML 未渲染屏幕');
+      const exportShot = await exportWin.webContents.capturePage();
+      fs.writeFileSync(path.join(outDir, '32-ui-export-html.png'), exportShot.toPNG());
+    } finally {
+      if (!exportWin.isDestroyed()) exportWin.destroy();
+    }
+    // 发布为应用内插件并确认出现在插件列表
+    const published = await env.uieditor.publishPlugin(project);
+    if (!published.ok || !published.pluginId) throw new Error(published.error || '发布插件失败');
+    const publishedPlugin = env.plugins.list().find((plugin) => plugin.id === published.pluginId);
+    if (!publishedPlugin) throw new Error('发布后插件未出现在列表');
+    // 首页卡片入口：点击 UI 编辑器卡片应打开编辑器窗口
+    env.windows.openPanel();
+    await wait(700);
+    const clickedCard = (await env.windows.panel?.webContents.executeJavaScript(
+      "(() => { const card = document.querySelector('.studio-card'); card?.click(); return !!card; })()"
+    )) as boolean;
+    if (!clickedCard) throw new Error('首页 UI 编辑器卡片未找到');
+    await wait(1700);
+    if (!env.uieditorWindow.win?.isVisible()) throw new Error('首页卡片未打开 UI 编辑器');
+    env.uieditorWindow.close();
+    await wait(300);
+    return `${state.title} · 画布 ${state.canvasNodes} 节点 · 工程 ${list.length} 个/${projectsState.cards} 卡片 · 导出 HTML ${Math.round(html.length / 1024)}KB/${exportScreens} 屏 · 发布插件 ${published.pluginId}`;
+  });
+
   await run('悬浮球点击打开面板', async () => {
     await env.windows.hidePanelImmediate();
     await wait(500);
@@ -652,6 +759,10 @@ export async function runSmoke(env: SmokeEnv): Promise<void> {
   }
   if (failed.length) env.logger.warn(`[test] 失败 ${failed.length} 项`);
 }
+
+
+
+
 
 
 
