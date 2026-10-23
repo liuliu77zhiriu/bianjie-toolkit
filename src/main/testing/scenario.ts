@@ -1,4 +1,4 @@
-/**
+﻿/**
  * 冒烟测试脚本（npm run smoke，TK_TEST=1 时由主进程加载）。
  * 覆盖：面板/悬浮球/桌面外观、插件列表、设置读写、截图、录屏、插件 iframe、设置页。
  */
@@ -227,6 +227,13 @@ export async function runSmoke(env: SmokeEnv): Promise<void> {
     if (!win || win.isDestroyed()) throw new Error('设置窗口未创建');
     const shot = await win.webContents.capturePage();
     fs.writeFileSync(path.join(outDir, '10-settings-window.png'), shot.toPNG());
+    const layout = (await win.webContents.executeJavaScript(`(() => {
+      const rect = document.querySelector('.settings-window')?.getBoundingClientRect();
+      return { innerW: innerWidth, innerH: innerHeight, cardW: rect?.width ?? 0, cardH: rect?.height ?? 0 };
+    })()`)) as { innerW: number; innerH: number; cardW: number; cardH: number };
+    if (Math.abs(layout.cardW - layout.innerW) > 1 || Math.abs(layout.cardH - layout.innerH) > 1) {
+      throw new Error(`设置窗口未铺满客户区：${layout.cardW}x${layout.cardH} / ${layout.innerW}x${layout.innerH}`);
+    }
     const state = (await win.webContents.executeJavaScript(`(() => ({
       nav: document.querySelectorAll('.settings-nav-item').length,
       title: document.querySelector('.settings-page-title')?.textContent ?? '',
@@ -266,7 +273,13 @@ export async function runSmoke(env: SmokeEnv): Promise<void> {
     await wait(500);
     const resizedShot = await win.webContents.capturePage();
     fs.writeFileSync(path.join(outDir, '24-settings-resized.png'), resizedShot.toPNG());
-    const resizedSize = win.getSize();
+    const resizedLayout = (await win.webContents.executeJavaScript(`(() => {
+      const rect = document.querySelector('.settings-window')?.getBoundingClientRect();
+      return { innerW: innerWidth, cardW: rect?.width ?? 0 };
+    })()`)) as { innerW: number; cardW: number };
+    if (Math.abs(resizedLayout.cardW - resizedLayout.innerW) > 1) {
+      throw new Error(`缩放后设置窗口未铺满：${resizedLayout.cardW} / ${resizedLayout.innerW}`);
+    }
     win.setSize(920, 720);
     await wait(300);
     // 扩展 tab → 点击第一个「编辑」进入编辑器，验证独立设置窗口中的编辑器布局
@@ -429,7 +442,7 @@ export async function runSmoke(env: SmokeEnv): Promise<void> {
     await ball.webContents.executeJavaScript(
       "(() => { const el = document.querySelector('.ball-root'); el.dispatchEvent(new MouseEvent('mouseout', { bubbles: true, relatedTarget: document.body })); return true; })()"
     );
-    await wait(1500);
+    await wait(2400);
     const reDocked = ball.getBounds();
     if (Math.abs(reDocked.x - docked.x) > 6) throw new Error(`离开后未重新隐藏：${reDocked.x} vs ${docked.x}`);
     env.windows.setBallDock(null, false);
@@ -639,6 +652,7 @@ export async function runSmoke(env: SmokeEnv): Promise<void> {
   }
   if (failed.length) env.logger.warn(`[test] 失败 ${failed.length} 项`);
 }
+
 
 
 

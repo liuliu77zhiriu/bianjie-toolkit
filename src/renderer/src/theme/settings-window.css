@@ -5,15 +5,29 @@
 html,
 body,
 #root {
+  width: 100%;
   height: 100%;
   margin: 0;
   padding: 0;
   background: transparent;
+}
+
+/* shell.css 给 #root 设了 display:flex；这里让设置窗口始终铺满整个客户区 */
+#root {
+  display: flex;
+  align-items: stretch;
+}
+
+html,
+body {
   overflow: hidden;
 }
 
 .settings-window {
   position: relative;
+  flex: 1 1 auto;
+  width: 100%;
+  min-width: 0;
   height: 100%;
   display: flex;
   flex-direction: column;
