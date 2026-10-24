@@ -1,4 +1,4 @@
-﻿import { app, BrowserWindow, Notification, clipboard, desktopCapturer, dialog, ipcMain, nativeImage, powerSaveBlocker, screen, session, shell } from 'electron';
+﻿import { app, BrowserWindow, Notification, clipboard, desktopCapturer, dialog, ipcMain, nativeImage, net, powerSaveBlocker, screen, session, shell } from 'electron';
 import path from 'node:path';
 import fs from 'node:fs';
 import { APP_ID } from '../shared/defaults';
@@ -18,6 +18,9 @@ import { WallpaperService } from './core/wallpapers';
 import { ThemeService } from './core/themes';
 import { UIEditorService } from './core/uieditor/service';
 import { UIEditorWindowManager } from './core/uieditor/window';
+import { SearchService } from './core/search/search-service';
+import { DownloadService } from './core/search/download-service';
+import { SearchWindowManager } from './core/search/window';
 import { createMediaApi } from './core/media';
 
 const gotLock = app.requestSingleInstanceLock();
@@ -55,6 +58,9 @@ let wallpapers: WallpaperService;
 let themes: ThemeService;
 let uieditor: UIEditorService;
 let uieditorWindow: UIEditorWindowManager;
+let search: SearchService;
+let downloads: DownloadService;
+let searchWindow: SearchWindowManager;
 let quitting = false;
 
 function notify(opts: { title: string; body?: string }) {
@@ -145,6 +151,38 @@ async function bootstrap() {
   });
   uieditorWindow.registerIpc();
 
+  const searchSaveDir = path.join(app.getPath('downloads'), '流光搜索');
+  fs.mkdirSync(searchSaveDir, { recursive: true });
+  const fetchImpl = ((input: RequestInfo | URL, init?: RequestInit) => net.fetch(input as never, init as never)) as typeof fetch;
+  search = new SearchService({
+    paths: pathsRef,
+    logger,
+    fetchImpl,
+    broadcast: (topic, payload) => ipc.broadcast(topic, payload),
+  });
+  await search.init();
+  if (!search.getSettings().saveDir) {
+    search.patchSettings({ saveDir: searchSaveDir });
+  }
+  downloads = new DownloadService({
+    paths: pathsRef,
+    logger,
+    fetchImpl,
+    getSaveDir: () => search.getSettings().saveDir || searchSaveDir,
+    getConcurrency: () => search.getSettings().concurrentDownloads,
+    broadcast: (topic, payload) => ipc.broadcast(topic, payload),
+    openFile: (filePath) => shell.openPath(filePath),
+    openFolder: (dir) => shell.openPath(dir),
+  });
+  await downloads.init();
+  searchWindow = new SearchWindowManager({
+    paths: { preloadDir: pathsRef.preloadDir, resourcesDir: pathsRef.resourcesDir },
+    logger,
+    ipc,
+    getReferenceWindow: () => windows.panel ?? windows.ball,
+  });
+  searchWindow.registerIpc();
+
   overlay = new OverlayManager({
     paths: pathsRef,
     ipc,
@@ -198,7 +236,7 @@ async function bootstrap() {
 
   shortcuts = new ShortcutManager({ settings, logger, plugins, windows });
 
-  new CoreService({ paths: pathsRef, logger, settings, ipc, windows, overlay, plugins, shortcuts, wallpapers, themes, uieditor }).register();
+  new CoreService({ paths: pathsRef, logger, settings, ipc, windows, overlay, plugins, shortcuts, wallpapers, themes, uieditor, search, downloads }).register();
 
   settings.on('change', (next: ReturnType<SettingsService['get']>) => {
     try {
@@ -274,6 +312,9 @@ async function bootstrap() {
         settingsWindow,
         uieditor,
         uieditorWindow,
+        search,
+        downloads,
+        searchWindow,
       });
     } catch (err) {
       logger.error('[test] 冒烟测试异常', err);
@@ -341,6 +382,8 @@ app.on('before-quit', (event) => {
       tray?.destroy();
       settingsWindow?.destroy();
       uieditorWindow?.destroy();
+      searchWindow?.destroy();
+      await downloads?.dispose();
       windows?.destroy();
       logger?.info('[main] 清理完成');
     } catch (err) {
@@ -378,6 +421,9 @@ process.on('exit', () => {
     /* ignore */
   }
 });
+
+
+
 
 
 

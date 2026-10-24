@@ -1,4 +1,4 @@
-# 便捷工具 · 架构与协作约定
+﻿# 便捷工具 · 架构与协作约定
 
 > 技术栈：Electron 38（Chromium 140 / Node 22）+ React 19 + Vite 7 + TypeScript。
 > 目标：稳定、轻量、可扩展。主进程负责所有“后端服务”，渲染进程只做展示与交互。
@@ -28,6 +28,11 @@ src/
         service.ts       UI 编辑器工程存储 + HTML/JSON/React 导出 + 发布为插件
         window.ts        UI 编辑器独立窗口（最大化、关闭隐藏）
         export.ts        纯函数导出器（自包含 HTML / React / 截图片段）
+      search/
+        search-service.ts 搜索引擎（Bing RSS 优先 / DDG 降级）、建议、历史、书签、设置
+        download-service.ts 下载队列（进度/速度/暂停续传/重试/历史）
+        parse.ts          RSS/HTML/建议/文件名纯解析
+        window.ts        流光搜索独立窗口（白色玻璃 UI）
       tray.ts            托盘与菜单
       shortcuts.ts       全局快捷键
       commands.ts        插件命令注册表（托盘 / 快捷键 / 快捷操作共用）
@@ -43,9 +48,11 @@ src/
     recorder.html        隐藏录制页（capture-dev）
     settings.html        独立设置窗口
     editor.html          UI 编辑器工作台
+    search.html          流光搜索窗口
     src/
       shell/             外壳：路由、页面动效、弹层、Toast、悬浮球 UI（Lead）
       settings/          ★ 独立设置窗口：侧边栏 + 宽内容区 + 编辑器视图（Lead）
+      search/            流光搜索：白色玻璃 UI / 流体背景 / 搜索/下载/历史/书签/设置
       editor/            UI 编辑器：store / 画布 / 左右面板 / 预览 / 顶栏 / 工具栏 / 样式
         canvas/          画布渲染与交互（NodeView/CanvasStage）
         panels/          图层/组件/模板/页面/资源 + 属性/令牌/交互
@@ -92,6 +99,7 @@ npm run package    # 打包绿色版（复制本地 Electron 运行时 + resedit
 | panel | 452×652 透明无边框主面板（Win11 acrylic 毛玻璃 + CSS 玻璃层），页面切换为弹簧动效 |
 | settings | 独立设置窗口（默认 920×720，可缩放），侧边栏分类 + 宽内容区；关闭只隐藏，单实例复用 |
 | editor | UI 编辑器工作台（默认最大化、可缩放），三栏布局 + 预览覆盖层；关闭只隐藏 |
+| search | 流光搜索窗口（默认 1400×860，可缩放），左侧玻璃导航 + 流体搜索/下载页面；关闭隐藏 |
 | overlay | 每个显示器一块全屏透明遮罩，用于框选区域截图 |
 | mini-* | 插件通过 `ctx.windows.open()` 创建的持久小窗（如计时器桌面悬浮窗） |
 | recorder | 隐藏窗口，持有 `getDisplayMedia`/MediaRecorder，负责把录制数据流回主进程落盘 |
@@ -159,8 +167,9 @@ npm run package    # 打包绿色版（复制本地 Electron 运行时 + resedit
 
 ## 测试要求
 
-- Lead 提供 `npm run smoke`：启动真实应用，跑 21 项检查（窗口/悬浮球贴边/截图/录屏/计时器/独立设置窗口/个性化主题壁纸/编辑器文件增删恢复/UI 编辑器工作台与预览/HTML 导出真实加载/发布插件/插件热重载），产出 `artifacts/` 截图与 `report.json`。
+- Lead 提供 `npm run smoke`：启动真实应用，跑 22 项检查（窗口/悬浮球贴边/截图/录屏/计时器/独立设置窗口/个性化主题壁纸/编辑器文件增删恢复/UI 编辑器工作台与预览/HTML 导出真实加载/发布插件/流光搜索与下载器/插件热重载），产出 `artifacts/` 截图与 `report.json`。
 - teammate 只写自己模块的单元/集成用例到 `tests/<module>.test.mjs`（Node 原生 test runner，`node --test`），并保证 `npm run smoke` 相关断言通过。
+
 
 
 

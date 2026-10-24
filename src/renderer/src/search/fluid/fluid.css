@@ -1,0 +1,106 @@
+﻿/* ============================================================================
+ * 流光搜索 · 流体背景
+ * 白纸基底 + 珠光流体带，纯展示层：absolute inset:0、pointer-events:none。
+ * ========================================================================== */
+
+.fluid-bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  contain: paint;
+  /* 跟随父级圆角自裁剪（父级可能 overflow:visible，例如 hero 需要容纳建议下拉） */
+  border-radius: inherit;
+  background-color: #f7f8fb;
+}
+
+.fluid-bg__canvas {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+/* hero：聚焦中央横向流带，上下柔和融入页面，左右保留流动感 */
+.fluid-bg--hero .fluid-bg__canvas {
+  filter: saturate(2.05) contrast(1.12) brightness(1.01);
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0) 0%,
+    rgba(0, 0, 0, 0.32) 7%,
+    rgba(0, 0, 0, 0.88) 20%,
+    #000 34%,
+    #000 68%,
+    rgba(0, 0, 0, 0.85) 82%,
+    rgba(0, 0, 0, 0.28) 94%,
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0) 0%,
+    rgba(0, 0, 0, 0.32) 7%,
+    rgba(0, 0, 0, 0.88) 20%,
+    #000 34%,
+    #000 68%,
+    rgba(0, 0, 0, 0.85) 82%,
+    rgba(0, 0, 0, 0.28) 94%,
+    transparent 100%
+  );
+}
+
+/* ambient：整页低透明氛围，向下更淡 */
+.fluid-bg--ambient .fluid-bg__canvas {
+  opacity: 0.8;
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0.85) 0%,
+    #000 22%,
+    rgba(0, 0, 0, 0.72) 62%,
+    rgba(0, 0, 0, 0.26) 88%,
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0.85) 0%,
+    #000 22%,
+    rgba(0, 0, 0, 0.72) 62%,
+    rgba(0, 0, 0, 0.26) 88%,
+    transparent 100%
+  );
+}
+
+/* 极细胶片颗粒：静态纹理，不参与逐帧绘制 */
+.fluid-bg::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.42;
+  mix-blend-mode: soft-light;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='g'><feTurbulence type='fractalNoise' baseFrequency='0.86' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='180' height='180' filter='url(%23g)' opacity='0.5' /></svg>");
+  background-size: 180px 180px;
+  background-repeat: repeat;
+}
+
+/* 页面/系统显式关闭动效时，纹理略收敛，避免视觉噪点 */
+:root[data-motion='off'] .fluid-bg::after {
+  opacity: 0.3;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fluid-bg::after {
+    opacity: 0.3;
+  }
+}
+
+/* 高对比度偏好下降低整体存在感，保证可读性 */
+@media (prefers-contrast: more) {
+  .fluid-bg--ambient .fluid-bg__canvas {
+    opacity: 0.4;
+  }
+}
+
+

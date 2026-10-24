@@ -120,6 +120,18 @@ export function HomePage({ plugins, commands, onOpenTool, onOpenSettings, onQuic
             <Icon name="chevron-right" size={14} />
           </span>
         </button>
+        <button className="studio-card compact search-entry" onClick={() => onOpenTool('search')} title="打开流光搜索（搜索引擎与下载器）">
+          <span className="studio-icon">
+            <Icon name="search" size={15} />
+          </span>
+          <span className="studio-copy">
+            <b>流光搜索</b>
+            <i>搜索 · 下载</i>
+          </span>
+          <span className="studio-arrow">
+            <Icon name="chevron-right" size={14} />
+          </span>
+        </button>
         <button className="home-extend" onClick={() => onOpenSettings('plugins')}>
           <span className="home-extend-icon">
             <Icon name="plus" size={14} />

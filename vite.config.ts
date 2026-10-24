@@ -31,6 +31,7 @@ export default defineConfig({
         recorder: resolve(rendererRoot, 'recorder.html'),
         settings: resolve(rendererRoot, 'settings.html'),
         editor: resolve(rendererRoot, 'editor.html'),
+        search: resolve(rendererRoot, 'search.html'),
       },
     },
   },
@@ -39,5 +40,6 @@ export default defineConfig({
     strictPort: true,
   },
 });
+
 
 

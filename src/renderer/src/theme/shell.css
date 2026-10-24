@@ -1193,8 +1193,33 @@ body {
 }
 .studio-card.compact {
   margin-top: 0;
-  padding: 7px 10px;
-  gap: 8px;
+  padding: 6px 9px;
+  gap: 7px;
+}
+.studio-card.compact .studio-copy b {
+  font-size: 11px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.studio-card.compact .studio-copy i {
+  display: none;
+}
+.home-bottom-row .home-extend small {
+  display: none;
+}
+.home-bottom-row .home-extend b {
+  font-size: 11px;
+  white-space: nowrap;
+}
+.home-bottom-row .home-extend {
+  padding: 6px 9px;
+  gap: 7px;
+}
+.home-bottom-row .studio-icon {
+  width: 27px;
+  height: 27px;
+  border-radius: 8px;
 }
 .studio-card.compact .studio-icon {
   width: 30px;
@@ -1218,4 +1243,20 @@ body {
   display: grid;
   place-items: center;
 }
-
+/* 首页底部三入口：紧凑单行，避免中文标题换行 */
+.home-bottom-row .studio-card.compact .studio-copy i {
+  display: none !important;
+}
+.home-bottom-row .studio-card.compact .studio-copy b {
+  font-size: 10.5px !important;
+  white-space: nowrap;
+  letter-spacing: 0;
+}
+.home-bottom-row .studio-card.compact .studio-icon {
+  width: 26px !important;
+  height: 26px !important;
+  border-radius: 8px;
+}
+.home-bottom-row .studio-card.compact .studio-arrow {
+  width: 12px;
+}

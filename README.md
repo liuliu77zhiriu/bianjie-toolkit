@@ -1,4 +1,4 @@
-# 便捷工具（Bianjie Toolkit）
+﻿# 便捷工具（Bianjie Toolkit）
 
 > 一个常驻桌面的小工具箱：悬浮球唤起，蓝黑毛玻璃面板，截图 / 录屏 / 备忘录 / 计时器开箱即用，所有工具都是可编辑、可扩展的插件；还内置一个可视化 **UI 编辑器**，可以像 Unity 一样拖拽设计界面并导出 HTML / React / 应用内插件。
 
@@ -31,8 +31,13 @@
 | --- | --- | --- |
 | ![UI 编辑器](docs/images/ui-editor.png) | ![原型预览](docs/images/ui-editor-preview.png) | ![导出 HTML](docs/images/ui-editor-export.png) |
 
+| 流光搜索 | 下载队列 | 搜索结果 |
+| --- | --- | --- |
+| ![流光搜索](docs/images/search-home.png) | ![下载队列](docs/images/search-downloads.png) | ![搜索结果](docs/images/search-results.png) |
+
 ## 特性
 
+- **流光搜索**：白色基底 + 实时珠光流体 + 玻璃 UI 的搜索引擎与下载器；Bing/DuckDuckGo 聚合、搜索建议、历史/书签、断点续传下载队列、实时进度与速度；入口在首页底部中间。详见 [流光搜索文档](docs/SEARCH.md)。
 - **UI 编辑器**：一个独立的大窗口设计工作台——自由画布（网格/标尺/吸附/参考线/缩放/框选）、图层树、29 个内置组件、7 套完整页面模板、设计令牌、状态样式、交互原型、多页面、工程库；一键导出**自包含 HTML / React 组件 / 工程 JSON**，或发布为应用内工具。详见 [UI 编辑器文档](docs/UI_EDITOR.md)。
 - **悬浮球**：72px 透明玻璃球，点击唤出面板；可拖动、贴边吸附、自动淡出；拖到屏幕左/右边缘会**半隐藏成一条亮边**，鼠标靠近自动弹出、移开重新藏回（可在外观设置关闭）。
 - **轻量稳定**：Electron 38 + React 19，主进程模块化服务 + 插件隔离沙箱（iframe）；单个插件崩溃不影响外壳。
@@ -75,7 +80,7 @@ npm run build
 npm start
 ```
 
-更多说明见 [用户手册](docs/USER_GUIDE.md)、[UI 编辑器文档](docs/UI_EDITOR.md)、[架构文档](docs/ARCHITECTURE.md) 与 [UI 设计说明](docs/UI_DESIGN.md)。
+更多说明见 [用户手册](docs/USER_GUIDE.md)、[UI 编辑器文档](docs/UI_EDITOR.md)、[流光搜索文档](docs/SEARCH.md)、[架构文档](docs/ARCHITECTURE.md) 与 [UI 设计说明](docs/UI_DESIGN.md)。
 
 ## 开发
 
@@ -119,6 +124,7 @@ scripts       构建 / 启动 / 冒烟测试 / 打包 / 图标生成
 ## 许可
 
 MIT
+
 
 
 

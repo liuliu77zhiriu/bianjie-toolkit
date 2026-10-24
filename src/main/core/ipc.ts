@@ -6,7 +6,7 @@ import type { Logger } from './logger';
 
 export type Handler = (args: unknown, meta: ClientMeta) => unknown | Promise<unknown>;
 
-export type ClientKind = 'panel' | 'ball' | 'plugin-window' | 'overlay' | 'settings' | 'editor';
+export type ClientKind = 'panel' | 'ball' | 'plugin-window' | 'overlay' | 'settings' | 'editor' | 'search';
 
 export interface ClientMeta {
   kind: ClientKind;
@@ -121,5 +121,6 @@ export class IpcHub {
     this.clients.clear();
   }
 }
+
 
 

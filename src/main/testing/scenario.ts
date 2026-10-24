@@ -18,6 +18,9 @@ import type { SettingsWindowManager } from '../core/settings-window';
 import { exportStandaloneHtml } from '../core/uieditor/export';
 import type { UIEditorService } from '../core/uieditor/service';
 import type { UIEditorWindowManager } from '../core/uieditor/window';
+import type { SearchService } from '../core/search/search-service';
+import type { DownloadService } from '../core/search/download-service';
+import type { SearchWindowManager } from '../core/search/window';
 
 export interface SmokeEnv {
   app: typeof import('electron').app;
@@ -34,6 +37,9 @@ export interface SmokeEnv {
   settingsWindow: SettingsWindowManager;
   uieditor: UIEditorService;
   uieditorWindow: UIEditorWindowManager;
+  search: SearchService;
+  downloads: DownloadService;
+  searchWindow: SearchWindowManager;
 }
 
 interface StepResult {
@@ -136,6 +142,7 @@ export async function runSmoke(env: SmokeEnv): Promise<void> {
   });
 
   await run('设置读写', async () => {
+    env.logger.info('[test] settings step start');
     const before = env.settings.get();
     const next = env.settings.patch({ appearance: { accent: '#46D7D1' } });
     if (next.appearance.accent.toLowerCase() !== '#46d7d1') throw new Error('patch 未生效');
@@ -510,6 +517,114 @@ export async function runSmoke(env: SmokeEnv): Promise<void> {
     return `${state.title} · 画布 ${state.canvasNodes} 节点 · 工程 ${list.length} 个/${projectsState.cards} 卡片 · 导出 HTML ${Math.round(html.length / 1024)}KB/${exportScreens} 屏 · 发布插件 ${published.pluginId}`;
   });
 
+  await run('流光搜索：搜索 + 下载器', async () => {
+    env.logger.info('[test] search: server start');
+    const server = http.createServer((req, res) => {
+      if ((req.url ?? '').startsWith('/rss')) {
+        const xml = `<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel><title>smoke</title>
+          <item><title>Smoke Result One</title><link>https://example.com/one</link><description>first result &amp; snippet</description></item>
+          <item><title>Smoke Result Two</title><link>https://example.com/files/archive.zip</link><description>second result</description></item>
+        </channel></rss>`;
+        res.writeHead(200, { 'content-type': 'application/rss+xml; charset=utf-8' });
+        res.end(xml);
+        return;
+      }
+      if ((req.url ?? '').startsWith('/file')) {
+        const data = Buffer.alloc(256 * 1024, 7);
+        const range = req.headers.range;
+        if (range) {
+          const start = Number(/bytes=(\d+)-/.exec(range)?.[1] ?? 0);
+          res.writeHead(206, {
+            'content-type': 'application/octet-stream',
+            'content-length': String(data.length - start),
+            'content-range': `bytes ${start}-${data.length - 1}/${data.length}`,
+          });
+          res.end(data.subarray(start));
+          return;
+        }
+        res.writeHead(200, { 'content-type': 'application/octet-stream', 'content-length': String(data.length) });
+        res.end(data);
+        return;
+      }
+      res.writeHead(404);
+      res.end('not found');
+    });
+    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', () => resolve()));
+    const address = server.address();
+    const port = typeof address === 'object' && address ? address.port : 0;
+    const downloadDir = path.join(outDir, 'search-downloads');
+    fs.mkdirSync(downloadDir, { recursive: true });
+    try {
+      const response = await env.search.search('smoke query', {
+        endpoint: `http://127.0.0.1:${port}/rss`,
+      });
+      env.logger.info('[test] search: search done', response.results.length);
+      if (response.results.length !== 2) throw new Error(`搜索结果解析异常：${response.results.length}`);
+      if (!response.results[1].downloadable) throw new Error('未识别可下载链接');
+      env.logger.info('[test] search: download start');
+      const item = await env.downloads.start({
+        url: `http://127.0.0.1:${port}/file/smoke.bin`,
+        name: 'smoke-download.bin',
+        saveDir: downloadDir,
+      });
+      env.logger.info('[test] search: download item', item.id, item.status);
+      let completed = env.downloads.list().find((download) => download.id === item.id);
+      for (let i = 0; i < 60 && completed?.status !== 'completed'; i += 1) {
+        await wait(200);
+        completed = env.downloads.list().find((download) => download.id === item.id);
+      }
+      if (completed?.status !== 'completed') throw new Error(`下载未完成：${completed?.status ?? 'missing'}`);
+      const stat = fs.statSync(completed.filePath);
+      if (stat.size !== 256 * 1024) throw new Error(`下载文件大小异常：${stat.size}`);
+      env.searchWindow.open({ tab: 'search' });
+      await wait(2000);
+      const win = env.searchWindow.win;
+      if (!win || win.isDestroyed()) throw new Error('流光搜索窗口未创建');
+      const uiState = (await win.webContents.executeJavaScript(`(() => ({
+        input: document.querySelectorAll('input').length,
+        text: document.body.innerText.slice(0, 120),
+        buttons: document.querySelectorAll('button').length,
+        motion: document.documentElement.dataset.motion ?? '',
+        force: document.documentElement.dataset.forceMotion ?? '',
+        reduce: window.matchMedia('(prefers-reduced-motion: reduce)').matches,
+        canvas: (() => { const c = document.querySelector('.s-hero-fluid canvas'); return c ? c.width + 'x' + c.height : 'none'; })(),
+        hash: (() => { const c = document.querySelector('.s-hero-fluid canvas'); const ctx = c && c.getContext('2d'); if (!ctx) return 0; const d = ctx.getImageData(0, 0, 24, 24).data; let h = 0; for (let i = 0; i < d.length; i += 3) h = (h * 31 + d[i]) >>> 0; return h; })(),
+      }))()`)) as { input: number; text: string; buttons: number; motion: string; force: string; reduce: boolean; canvas: string; hash: number };
+      if (!uiState.input) throw new Error('搜索窗口未渲染输入框');
+      const shot = await win.webContents.capturePage();
+      fs.writeFileSync(path.join(outDir, '40-search-home.png'), shot.toPNG());
+      await wait(500);
+      const hash2 = (await win.webContents.executeJavaScript(
+        "(() => { const c = document.querySelector('.s-hero-fluid canvas'); const ctx = c && c.getContext('2d'); if (!ctx) return 0; const d = ctx.getImageData(0, 0, 24, 24).data; let h = 0; for (let i = 0; i < d.length; i += 3) h = (h * 31 + d[i]) >>> 0; return h; })()"
+      )) as number;
+      const fluidShot = await win.webContents.capturePage();
+      fs.writeFileSync(path.join(outDir, '41-search-fluid.png'), fluidShot.toPNG());
+      // 下载页截图
+      await win.webContents.executeJavaScript(
+        "(() => { const button = document.querySelector('[data-label=\"下载队列\"]'); button?.click(); return !!button; })()"
+      );
+      await wait(500);
+      const downloadsShot = await win.webContents.capturePage();
+      fs.writeFileSync(path.join(outDir, '42-search-downloads.png'), downloadsShot.toPNG());
+      env.searchWindow.close();
+      await wait(300);
+      // 首页流光搜索卡片入口
+      env.windows.openPanel();
+      await wait(700);
+      const clickedSearchCard = (await env.windows.panel?.webContents.executeJavaScript(
+        "(() => { const card = document.querySelector('.search-entry'); card?.click(); return !!card; })()"
+      )) as boolean;
+      if (!clickedSearchCard) throw new Error('首页流光搜索卡片未找到');
+      await wait(1500);
+      if (!env.searchWindow.win?.isVisible()) throw new Error('首页卡片未打开流光搜索');
+      env.searchWindow.close();
+      await wait(300);
+      return `搜索 ${response.results.length} 条 · 下载 ${Math.round(stat.size / 1024)}KB · UI 输入框 ${uiState.input}/按钮 ${uiState.buttons} · fluid ${uiState.canvas} motion=${uiState.motion}/${uiState.force} reduce=${uiState.reduce} hash=${uiState.hash}->${hash2}`;
+    } finally {
+      await new Promise<void>((resolve) => server.close(() => resolve()));
+    }
+  });
+
   await run('悬浮球点击打开面板', async () => {
     await env.windows.hidePanelImmediate();
     await wait(500);
@@ -759,6 +874,10 @@ export async function runSmoke(env: SmokeEnv): Promise<void> {
   }
   if (failed.length) env.logger.warn(`[test] 失败 ${failed.length} 项`);
 }
+
+
+
+
 
 
 

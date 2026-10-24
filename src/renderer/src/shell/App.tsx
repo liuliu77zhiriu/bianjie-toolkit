@@ -1,4 +1,4 @@
-﻿import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import type { PluginRuntimeInfo, Settings } from '@shared/types';
 import {
   invoke,
@@ -104,6 +104,10 @@ export default function App() {
       }
       if (pluginId === 'uieditor') {
         void invoke('core', 'uieditor.openWindow').catch(() => toast('打开 UI 编辑器失败', 'error'));
+        return;
+      }
+      if (pluginId === 'search') {
+        void invoke('core', 'search.openWindow').catch(() => toast('打开流光搜索失败', 'error'));
         return;
       }
       const plugin = plugins.find((item) => item.id === pluginId);

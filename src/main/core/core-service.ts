@@ -13,6 +13,8 @@ import type { ShortcutManager } from './shortcuts';
 import type { WallpaperService } from './wallpapers';
 import type { ThemeService } from './themes';
 import type { UIEditorService } from './uieditor/service';
+import type { SearchService } from './search/search-service';
+import type { DownloadService } from './search/download-service';
 import { ToolkitError } from './errors';
 
 export interface CoreServiceDeps {
@@ -27,6 +29,8 @@ export interface CoreServiceDeps {
   wallpapers: WallpaperService;
   themes: ThemeService;
   uieditor: UIEditorService;
+  search: SearchService;
+  downloads: DownloadService;
 }
 
 export class CoreService {
@@ -320,6 +324,83 @@ export class CoreService {
       return this.deps.plugins.restoreDeletedFile(String(request?.id ?? ''), String(request?.path ?? ''));
     });
 
+    /* ---------------------------------------------------------- 流光搜索 */
+
+    ipc.handle('core', 'search.getSettings', () => this.deps.search.getSettings());
+    ipc.handle('core', 'search.patchSettings', (args) => this.deps.search.patchSettings((args ?? {}) as Parameters<SearchService['patchSettings']>[0]));
+    ipc.handle('core', 'search.search', (args) => {
+      const request = (args ?? {}) as { query?: string; page?: number; engine?: string };
+      return this.deps.search.search(String(request.query ?? ''), {
+        page: request.page,
+        engine: request.engine as never,
+      });
+    });
+    ipc.handle('core', 'search.suggest', async (args) => {
+      const list = await this.deps.search.suggest(String((args as { query?: string })?.query ?? ''));
+      return list.map((item) => item.text);
+    });
+    ipc.handle('core', 'search.history', () => this.deps.search.listHistory());
+    ipc.handle('core', 'search.clearHistory', () => this.deps.search.clearHistory());
+    ipc.handle('core', 'search.removeHistory', (args) => this.deps.search.removeHistory(String((args as { id?: string })?.id ?? '')));
+    ipc.handle('core', 'search.bookmarks', () => this.deps.search.listBookmarks());
+    ipc.handle('core', 'search.addBookmark', (args) => {
+      const request = (args ?? {}) as { result?: { title?: string; url?: string; snippet?: string }; title?: string; url?: string; snippet?: string };
+      this.deps.search.addBookmark(request.result ?? request);
+      return this.deps.search.listBookmarks();
+    });
+    ipc.handle('core', 'search.removeBookmark', (args) => this.deps.search.removeBookmark(String((args as { id?: string })?.id ?? '')));
+    ipc.handle('core', 'search.clearBookmarks', () => this.deps.search.clearBookmarks());
+    ipc.handle('core', 'search.paths', () => this.deps.search.pathsInfo());
+    ipc.handle('core', 'search.openExternal', async (args) => {
+      const request = (args ?? {}) as { url?: string; query?: string };
+      const target = request.url
+        ? request.url
+        : `https://www.bing.com/search?q=${encodeURIComponent(request.query ?? '')}`;
+      if (!/^https?:\/\//i.test(target)) throw new ToolkitError('BAD_ARGS', '仅允许打开 http/https 链接');
+      await shell.openExternal(target);
+      return true;
+    });
+    ipc.handle('core', 'search.pickDir', async () => {
+      const result = await dialog.showOpenDialog({
+        title: '选择下载保存目录',
+        properties: ['openDirectory', 'createDirectory'],
+      });
+      return result.canceled ? null : result.filePaths[0] ?? null;
+    });
+
+    ipc.handle('core', 'downloads.list', () => this.deps.downloads.list());
+    ipc.handle('core', 'downloads.start', (args) => this.deps.downloads.start((args ?? {}) as Parameters<DownloadService['start']>[0]));
+    ipc.handle('core', 'downloads.pause', (args) => {
+      this.deps.downloads.pause(String((args as { id?: string })?.id ?? ''));
+      return this.deps.downloads.list();
+    });
+    ipc.handle('core', 'downloads.resume', async (args) => {
+      await this.deps.downloads.resume(String((args as { id?: string })?.id ?? ''));
+      return this.deps.downloads.list();
+    });
+    ipc.handle('core', 'downloads.cancel', (args) => {
+      this.deps.downloads.cancel(String((args as { id?: string })?.id ?? ''));
+      return this.deps.downloads.list();
+    });
+    ipc.handle('core', 'downloads.retry', async (args) => {
+      await this.deps.downloads.retry(String((args as { id?: string })?.id ?? ''));
+      return this.deps.downloads.list();
+    });
+    ipc.handle('core', 'downloads.remove', async (args) => {
+      const request = (args ?? {}) as { id?: string; deleteFile?: boolean };
+      return this.deps.downloads.remove(String(request.id ?? ''), { deleteFile: !!request.deleteFile });
+    });
+    ipc.handle('core', 'downloads.clearCompleted', () => this.deps.downloads.clearCompleted());
+    ipc.handle('core', 'downloads.openFile', (args) => this.deps.downloads.openFile(String((args as { id?: string })?.id ?? '')));
+    ipc.handle('core', 'downloads.openFolder', async (args) => {
+      const id = String((args as { id?: string })?.id ?? '');
+      if (id) return this.deps.downloads.openFolder(id);
+      const settings = this.deps.search.getSettings();
+      const dir = settings.saveDir || this.deps.search.pathsInfo().saveDir;
+      await shell.openPath(dir);
+      return true;
+    });
+
     /* ---------------------------------------------------------- UI 编辑器 */
 
     ipc.handle('core', 'uieditor.list', () => this.deps.uieditor.list());
@@ -363,6 +444,9 @@ export class CoreService {
     ipc.handle('core', 'overlay.pickRegion', () => this.deps.overlay.pickRegion());
   }
 }
+
+
+
 
 
 
