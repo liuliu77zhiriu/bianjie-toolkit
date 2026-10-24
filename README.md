@@ -1,6 +1,9 @@
-﻿# 便捷工具（Bianjie Toolkit）
+# 便捷工具（Bianjie Toolkit）
 
-> 一个常驻桌面的小工具箱：悬浮球唤起，蓝黑毛玻璃面板，截图 / 录屏 / 备忘录 / 计时器开箱即用，所有工具都是可编辑、可扩展的插件；还内置一个可视化 **UI 编辑器**，可以像 Unity 一样拖拽设计界面并导出 HTML / React / 应用内插件。
+> 一个常驻桌面的小工具箱：悬浮球唤起，蓝黑毛玻璃面板，截图 / 录屏 / 备忘录 / 计时器开箱即用，所有工具都是可编辑、可扩展的插件；还内置可视化 **UI 编辑器** 与白色玻璃 + 珠光流体的 **流光搜索**。
+
+**GitHub**：https://github.com/liuliu77zhiriu/bianjie-toolkit
+**下载绿色版**：https://github.com/liuliu77zhiriu/bianjie-toolkit/releases/latest
 
 ![主面板](docs/images/panel-home.png)
 
